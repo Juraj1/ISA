@@ -17,7 +17,7 @@ sniffer::sniffer() {
     mHelloFlag = false;
 
     mTtlFlag.first = false;
-    mTtlFlag.second = -1;
+    mTtlFlag.second = 80;
 
     mDuplexFlag.first = false;
     mDuplexFlag.second = "";
@@ -38,7 +38,9 @@ sniffer::sniffer() {
     mCapFlag.second = -1;
 
     mAddressFlag.first = false;
-    mAddressFlag.second = {0, 0, 0, 0};
+    for(int i = 0; i < 4; i++){
+        mAddressFlag.second[i] = 0;
+    }
 }
 
 int sniffer::argCheck(int argc, char *argv[]){
@@ -68,7 +70,10 @@ int sniffer::argCheck(int argc, char *argv[]){
                     return E_DUPLICITEARG;
                 }
                 mInterfaceFlag.first = true;
-                std::cout << "Interface " << optarg <<std::endl;
+                mInterfaceFlag.second = optarg;
+                /* set default value for --port-id */
+                mPortIdFlag.second = optarg;
+                std::cout << "Interface: " << optarg <<std::endl;
                 break;
             case 0:
                 /* --send-hello */
@@ -90,16 +95,84 @@ int sniffer::argCheck(int argc, char *argv[]){
                             return E_DUPLICITEARG;
                         }
                         mTtlFlag.first = true;
+                        mTtlFlag.second = atoi(optarg);
                         std::cout << "TTL: " << optarg << std::endl;
                         break;
                     }
+                    /* --duplex */
                     if(!strcmp(longopts[index].name, "duplex")){
+                        /* flag already used */
                         if(mDuplexFlag.first){
                             return E_DUPLICITEARG;
                         }
                         mDuplexFlag.first = true;
+                        mDuplexFlag.second = optarg;
                         std::cout << "Duplex: " << optarg << std::endl;
+                        break;
                     }
+                    /* --platform */
+                    if(!strcmp(longopts[index].name, "platform")){
+                        /* flag already used */
+                        if(mPlatformFlag.first){
+                            return E_DUPLICITEARG;
+                        }
+                        mPlatformFlag.first = true;
+                        /* TODO: uname */
+                        mPlatformFlag.second = optarg;
+                        std::cout << "Platform: " << optarg << std::endl;
+                        break;
+                    }
+                    /* --software-version */
+                    if(!strcmp(longopts[index].name, "software-version")){
+                        if(mVersionFlag.first){
+                            return E_DUPLICITEARG;
+                        }
+                        mVersionFlag.first = true;
+                        /* TODO: uname -a */
+                        mVersionFlag.second = optarg;
+                        std::cout << "Version: " << optarg << std::endl;
+                        break;
+                    }
+                    /* --device-id */
+                    if(!strcmp(longopts[index].name, "device-id")){
+                        if(mDeviceIdFlag.first){
+                            return E_DUPLICITEARG;
+                        }
+                        mDeviceIdFlag.first = true;
+                        /* TODO: hostname */
+                        mVersionFlag.second = optarg;
+                        std::cout << "Device-ID: " << optarg << std::endl;
+                        break;
+                    }
+                    /* --port-id */
+                    if(!strcmp(longopts[index].name, "port-id")){
+                        if(mPortIdFlag.first){
+                            return E_DUPLICITEARG;
+                        }
+                        mPortIdFlag.first = true;
+                        mPortIdFlag.second = optarg;
+                        std::cout << "Port-ID: " << optarg << std::endl;
+                    }
+                    /* --capabilities */
+                    if(!strcmp(longopts[index].name, "capabilities")){
+                        if(mCapFlag.first){
+                            return E_DUPLICITEARG;
+                        }
+                        mCapFlag.first = true;
+                        mCapFlag.second = atoi(optarg);
+                        std::cout << "Capabilities: " << optarg << std::endl;
+                        break;
+                    }
+                    /* --address */
+                    if(!strcmp(longopts[index].name, "address")){
+                        if(mAddressFlag.first){
+                            return E_DUPLICITEARG;
+                        }
+                        mAddressFlag.first = true;
+                        /* TODO: preparsovat IPv4 adresu */
+                    }
+                } else {
+                    return E_BADARG;
                 }
                 break;
             default:
@@ -108,7 +181,7 @@ int sniffer::argCheck(int argc, char *argv[]){
     }
 
     /* Missing the only required argument, therefore I must quit the app */
-    if(!mInterfaceFlag){
+    if(!mInterfaceFlag.first){
         return E_MISSINGREQUIREDARG;
     }
 

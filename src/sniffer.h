@@ -41,7 +41,7 @@ protected:
     std::pair<bool, std::string>mDeviceIdFlag;     /* --device-id */
     std::pair<bool, std::string>mPortIdFlag;       /* --port-id */
     std::pair<bool, int>mCapFlag;                  /* --capabilities */
-    std::pair<bool, char[]>mAddressFlag;          /* --address */
+    std::pair<bool, char[4]>mAddressFlag;          /* --address */
 
 
 public:
