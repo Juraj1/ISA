@@ -32,6 +32,7 @@ sniffer::sniffer() {
     /* uname -a into mVersionFlag */
     mSetDefaultVersionFlag();
 
+    /* device flag */
     mSetDefaultDeviceIdFlag();
 
     mPortIdFlag.first = false;
@@ -40,10 +41,41 @@ sniffer::sniffer() {
     mCapFlag.first = false;
     mCapFlag.second = -1;
 
-    mAddressFlag.first = false;
-    for(int i = 0; i < 4; i++){
-        mAddressFlag.second[i] = 0;
+    /* IP address init */
+    mSetDefaultAddressFlag();
+}
+
+int sniffer::mSetIpAddress(){
+    /*
+     * code (c) ste, source: http://stackoverflow.com/questions/579783/how-to-detect-ip-address-change-programmatically-in-linux
+     * modification and comments by me, Jiri Zahradnik <xzahra22>
+     */
+    /* socket */
+    int s;
+    /* struct to hold information about interface */
+    struct ifreq ifr = {};
+
+    /* protocol family, not address family, therefore PF_INET instead of AF_INET */
+    s = socket(PF_INET, SOCK_DGRAM, 0);
+
+    /* copy name of the interface */
+    strncpy(ifr.ifr_name, mInterfaceFlag.second.c_str(), sizeof(ifr.ifr_name));
+
+    /* syscall to get info about interface */
+    if(0 <= ioctl(s, SIOCGIFADDR, &ifr)){
+        /* store IP address */
+        mAddressFlag.second.sin_addr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
+    } else {
+        return E_UNKNOWN;
     }
+
+    /* I successfuly set the IP address */
+    return E_OK;
+}
+
+void sniffer::mSetDefaultAddressFlag(){
+    mAddressFlag.first = false;
+    inet_pton(AF_INET, "...", &(mAddressFlag.second));
 }
 
 void sniffer::mSetDefaultDeviceIdFlag(){
@@ -113,10 +145,18 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                 if(mInterfaceFlag.first){
                     return E_DUPLICITEARG;
                 }
+
                 mInterfaceFlag.first = true;
                 mInterfaceFlag.second = optarg;
+
                 /* set default value for --port-id */
                 mPortIdFlag.second = optarg;
+
+                /* set default IP address for said interface */
+                if(E_UNKNOWN == mSetIpAddress()){
+                    return E_UNKNOWN;
+                }
+
                 std::cout << "Interface: " << optarg <<std::endl;
                 break;
             case 0:
@@ -233,7 +273,10 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                         }
 
                         mAddressFlag.first = true;
-                        /* TODO: preparsovat IPv4 adresu */
+                        /* parse IPv4 address from string, if not an valid IPv4 address, return bad arg */
+                        if(!inet_pton(AF_INET, optarg, &(mAddressFlag.second.sin_addr))){
+                            return E_BADARG;
+                        }
                     }
                 } else {
                     return E_BADARG;
@@ -245,9 +288,13 @@ int sniffer::mArgCheck(int argc, char *argv[]){
     }
 
     std::cout << "******DEBUG******" << std::endl;
+    std::cout << mInterfaceFlag.second << std::endl;
     std::cout << mPlatformFlag.second << std::endl;
     std::cout << mVersionFlag.second << std::endl;
     std::cout << mDeviceIdFlag.second << std::endl;
+    char str[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &mAddressFlag.second.sin_addr, str, INET_ADDRSTRLEN);
+    std::cout << str << std::endl;
     std::cout << "******DEBUG******" << std::endl;
 
     /* Missing the only required argument, therefore I must quit the app */

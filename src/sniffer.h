@@ -23,6 +23,8 @@
 #include <sys/un.h>         /* PF_UNIX */
 #include <arpa/inet.h>      /* Functions for IP addr manipulation */
 #include <netdb.h>          /* Protocol name translation */
+#include <net/if.h>         /* low level device control */
+#include <sys/ioctl.h>      /* low level device control */
 
 /****** other headers ******/
 #include <unistd.h>
@@ -44,7 +46,7 @@ protected:
     std::pair<bool, std::string>mDeviceIdFlag;     /* --device-id */
     std::pair<bool, std::string>mPortIdFlag;       /* --port-id */
     std::pair<bool, int>mCapFlag;                  /* --capabilities */
-    std::pair<bool, char[4]>mAddressFlag;          /* --address */
+    std::pair<bool, struct sockaddr_in>mAddressFlag;          /* --address */
 
     /* uname struct */
     struct utsname mSysInfo;
@@ -58,7 +60,7 @@ protected:
     bool mIsNumber(char *);
 
     /**
-     * @brief sets Uname default uname;
+     * @brief Sets Uname default uname;
      */
     void mSetDefaultUname();
 
@@ -68,14 +70,24 @@ protected:
     void mSetDefaultVersionFlag();
 
     /**
-     * @brief sets default uname + arg flag.
+     * @brief Sets default uname + arg flag.
      */
     void mSetDefaultPlatformFlag();
 
     /**
-     * @brief sets default hostname + arg flag.
+     * @brief Sets default hostname + arg flag.
      */
     void mSetDefaultDeviceIdFlag();
+
+    /**
+     * @brief Sets default address flag;
+     */
+    void mSetDefaultAddressFlag();
+
+    /**
+     * @brief Sets ip address of an interface.
+     */
+    int mSetIpAddress();
 
 public:
     /****** VARIABLES ******/
