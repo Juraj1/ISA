@@ -26,6 +26,9 @@
 
 /****** other headers ******/
 #include <unistd.h>
+#include <cctype>
+#include <sys/utsname.h>    /* uname */
+#include <sstream>          /* stringstream */
 
 
 
@@ -43,6 +46,36 @@ protected:
     std::pair<bool, int>mCapFlag;                  /* --capabilities */
     std::pair<bool, char[4]>mAddressFlag;          /* --address */
 
+    /* uname struct */
+    struct utsname mSysInfo;
+
+    /****** METHODS ******/
+    /**
+     * @brief Checks whether string is a number.
+     * @param String to be checked.
+     * @return True if string is number.
+     */
+    bool mIsNumber(char *);
+
+    /**
+     * @brief sets Uname default uname;
+     */
+    void mSetDefaultUname();
+
+    /**
+     * @brief Sets default uname -a + arg flag.
+     */
+    void mSetDefaultVersionFlag();
+
+    /**
+     * @brief sets default uname + arg flag.
+     */
+    void mSetDefaultPlatformFlag();
+
+    /**
+     * @brief sets default hostname + arg flag.
+     */
+    void mSetDefaultDeviceIdFlag();
 
 public:
     /****** VARIABLES ******/
@@ -50,18 +83,16 @@ public:
 
     /****** METHODS ******/
     /**
-     * @param argc Argument count for parsing arguments
-     * @param argv Vector of arguments for main program.
+     * @brief Constructor of class sniffer to set default values.
      */
     sniffer();
 
     /**
      * @brief Parses arguments.
-     * @param argc Argument count for parsing arguments
+     * @param argc Argument count for parsing arguments.
      * @param argv Vector of arguments for main program.
      */
-    int argCheck(int argc, char *argv[]);
-    
+    int mArgCheck(int, char **);
 };
 
 #endif /* __SNIFFER_H__ */

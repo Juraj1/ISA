@@ -12,6 +12,7 @@ int main(int argc, char *argv[]){
             "",
             "Bad parameter",
             "Duplicit parameters",
+            "Expected integer as an argument",
             "Missing required argument",
             "Unable to estabilish connection",
             "Unknown error"
@@ -19,7 +20,7 @@ int main(int argc, char *argv[]){
 
     /* New object on the heap */
     sniffer *mySniffer = new sniffer();
-    int ret = mySniffer->argCheck(argc, argv);
+    int ret = mySniffer->mArgCheck(argc, argv);
     if(E_OK != ret){
         std::cout << errMessages[ret] << std::endl;
     }

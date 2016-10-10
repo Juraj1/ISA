@@ -2,6 +2,7 @@
 #include "sniffer.h"
 
 #include <getopt.h>
+#include <sstream>
 
 /**
  * @file sniffer.cpp
@@ -11,6 +12,9 @@
  */
 
 sniffer::sniffer() {
+    /* we must set default uname, which can be later overwritten */
+    mSetDefaultUname();
+
     mInterfaceFlag.first = false;
     mInterfaceFlag.second = "";
 
@@ -22,14 +26,13 @@ sniffer::sniffer() {
     mDuplexFlag.first = false;
     mDuplexFlag.second = "";
 
-    mPlatformFlag.first = false;
-    mPlatformFlag.second = "";
+    /* uname into mPlatformFlag */
+    mSetDefaultPlatformFlag();
 
-    mVersionFlag.first = false;
-    mVersionFlag.second = "";
+    /* uname -a into mVersionFlag */
+    mSetDefaultVersionFlag();
 
-    mDeviceIdFlag.first = false;
-    mDeviceIdFlag.second = "";
+    mSetDefaultDeviceIdFlag();
 
     mPortIdFlag.first = false;
     mPortIdFlag.second = "";
@@ -43,7 +46,48 @@ sniffer::sniffer() {
     }
 }
 
-int sniffer::argCheck(int argc, char *argv[]){
+void sniffer::mSetDefaultDeviceIdFlag(){
+    mDeviceIdFlag.first = false;
+    /* set default hostname */
+    char hostname[2048];
+    gethostname(hostname, 2048);
+    mDeviceIdFlag.second = hostname;
+}
+
+void sniffer::mSetDefaultPlatformFlag(){
+    mPlatformFlag.first = false;
+    mPlatformFlag.second = mSysInfo.sysname;
+}
+
+void sniffer::mSetDefaultVersionFlag(){
+    /* stringstream where I will be putting parts of uname */
+    std::stringstream str;
+    str << mSysInfo.sysname << " ";
+    str << mSysInfo.nodename << " ";
+    str << mSysInfo.release << " ";
+    str << mSysInfo.version << " ";
+    str << mSysInfo.machine << " ";
+    str << mSysInfo.domainname;
+
+    mVersionFlag.first = false;
+    mVersionFlag.second = str.str();
+}
+
+void sniffer::mSetDefaultUname(){
+    uname(&mSysInfo);
+}
+
+bool sniffer::mIsNumber(char *str){
+    char len = strlen(str);
+    for(int i = 0; i < len; i++){
+        if(!isdigit(str[i])){
+            return false;
+        }
+    }
+    return true;
+}
+
+int sniffer::mArgCheck(int argc, char *argv[]){
     /* enum describing codes for argument types */
     const struct option longopts[] = {
             {"send-hello", no_argument, 0, 0},
@@ -95,6 +139,9 @@ int sniffer::argCheck(int argc, char *argv[]){
                             return E_DUPLICITEARG;
                         }
                         mTtlFlag.first = true;
+                        if(!mIsNumber(optarg)){
+                            return E_EXPECTEDINTASARGUMENT;
+                        }
                         mTtlFlag.second = atoi(optarg);
                         std::cout << "TTL: " << optarg << std::endl;
                         break;
@@ -105,6 +152,11 @@ int sniffer::argCheck(int argc, char *argv[]){
                         if(mDuplexFlag.first){
                             return E_DUPLICITEARG;
                         }
+                        /* some random gibberish as the argument */
+                        if(strcmp(optarg, "half") && strcmp(optarg, "full")){
+                            return E_BADARG;
+                        }
+
                         mDuplexFlag.first = true;
                         mDuplexFlag.second = optarg;
                         std::cout << "Duplex: " << optarg << std::endl;
@@ -116,48 +168,58 @@ int sniffer::argCheck(int argc, char *argv[]){
                         if(mPlatformFlag.first){
                             return E_DUPLICITEARG;
                         }
+
                         mPlatformFlag.first = true;
-                        /* TODO: uname */
                         mPlatformFlag.second = optarg;
                         std::cout << "Platform: " << optarg << std::endl;
                         break;
                     }
                     /* --software-version */
                     if(!strcmp(longopts[index].name, "software-version")){
+                        /* flag already used */
                         if(mVersionFlag.first){
                             return E_DUPLICITEARG;
                         }
+
                         mVersionFlag.first = true;
-                        /* TODO: uname -a */
                         mVersionFlag.second = optarg;
                         std::cout << "Version: " << optarg << std::endl;
                         break;
                     }
                     /* --device-id */
                     if(!strcmp(longopts[index].name, "device-id")){
+                        /* flag already used */
                         if(mDeviceIdFlag.first){
                             return E_DUPLICITEARG;
                         }
+
                         mDeviceIdFlag.first = true;
-                        /* TODO: hostname */
-                        mVersionFlag.second = optarg;
-                        std::cout << "Device-ID: " << optarg << std::endl;
+                        mDeviceIdFlag.second = optarg;
+                        std::cout << "Device-ID: " << mDeviceIdFlag.second << std::endl;
                         break;
                     }
                     /* --port-id */
                     if(!strcmp(longopts[index].name, "port-id")){
+                        /* flag already used */
                         if(mPortIdFlag.first){
                             return E_DUPLICITEARG;
                         }
+
                         mPortIdFlag.first = true;
                         mPortIdFlag.second = optarg;
                         std::cout << "Port-ID: " << optarg << std::endl;
                     }
                     /* --capabilities */
                     if(!strcmp(longopts[index].name, "capabilities")){
+                        /* flag already used */
                         if(mCapFlag.first){
                             return E_DUPLICITEARG;
                         }
+                        /* check for validity of integer */
+                        if(!mIsNumber(optarg)){
+                            return E_EXPECTEDINTASARGUMENT;
+                        }
+
                         mCapFlag.first = true;
                         mCapFlag.second = atoi(optarg);
                         std::cout << "Capabilities: " << optarg << std::endl;
@@ -165,9 +227,11 @@ int sniffer::argCheck(int argc, char *argv[]){
                     }
                     /* --address */
                     if(!strcmp(longopts[index].name, "address")){
+                        /* flag already used */
                         if(mAddressFlag.first){
                             return E_DUPLICITEARG;
                         }
+
                         mAddressFlag.first = true;
                         /* TODO: preparsovat IPv4 adresu */
                     }
@@ -179,6 +243,12 @@ int sniffer::argCheck(int argc, char *argv[]){
                 return E_BADARG;
         }
     }
+
+    std::cout << "******DEBUG******" << std::endl;
+    std::cout << mPlatformFlag.second << std::endl;
+    std::cout << mVersionFlag.second << std::endl;
+    std::cout << mDeviceIdFlag.second << std::endl;
+    std::cout << "******DEBUG******" << std::endl;
 
     /* Missing the only required argument, therefore I must quit the app */
     if(!mInterfaceFlag.first){
