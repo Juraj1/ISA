@@ -45,6 +45,12 @@ sniffer::sniffer() {
     mSetDefaultAddressFlag();
 }
 
+int sniffer::mStartSniffing(){
+    /* open socket in promiscuous mode */
+
+    return E_OK;
+}
+
 int sniffer::mSetIpAddress(){
     /*
      * code (c) ste, source: http://stackoverflow.com/questions/579783/how-to-detect-ip-address-change-programmatically-in-linux
@@ -52,6 +58,7 @@ int sniffer::mSetIpAddress(){
      */
     /* socket */
     int s;
+
     /* struct to hold information about interface */
     struct ifreq ifr = {};
 
@@ -66,11 +73,26 @@ int sniffer::mSetIpAddress(){
         /* store IP address */
         mAddressFlag.second.sin_addr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
     } else {
+        shutdown(s, 2);
         return E_UNKNOWN;
     }
 
     /* I successfuly set the IP address */
+    shutdown(s, 2);
     return E_OK;
+}
+
+/* exec method (c) waqas from http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix */
+std::string sniffer::mExec(const char* cmd) {
+    char buffer[512];
+    std::string result = "";
+    std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    while (!feof(pipe.get())) {
+        if (fgets(buffer, 128, pipe.get()) != NULL)
+            result += buffer;
+    }
+    return result;
 }
 
 void sniffer::mSetDefaultAddressFlag(){
@@ -102,11 +124,11 @@ void sniffer::mSetDefaultVersionFlag(){
     str << mSysInfo.domainname;
 
     mVersionFlag.first = false;
-    mVersionFlag.second = str.str();
 }
 
 void sniffer::mSetDefaultUname(){
     uname(&mSysInfo);
+    mVersionFlag.second = mExec("uname -a");
 }
 
 bool sniffer::mIsNumber(char *str){
@@ -290,7 +312,7 @@ int sniffer::mArgCheck(int argc, char *argv[]){
     std::cout << "******DEBUG******" << std::endl;
     std::cout << mInterfaceFlag.second << std::endl;
     std::cout << mPlatformFlag.second << std::endl;
-    std::cout << mVersionFlag.second << std::endl;
+    std::cout << mVersionFlag.second;
     std::cout << mDeviceIdFlag.second << std::endl;
     char str[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &mAddressFlag.second.sin_addr, str, INET_ADDRSTRLEN);

@@ -15,6 +15,10 @@
 
 /****** standard headers ******/
 #include <cstdlib>
+#include <cstdio>
+#include <memory>
+#include <stdexcept>
+#include <string>
 
 /****** networking headers ******/
 #include <sys/socket.h>     /* Core socket functions */
@@ -25,6 +29,8 @@
 #include <netdb.h>          /* Protocol name translation */
 #include <net/if.h>         /* low level device control */
 #include <sys/ioctl.h>      /* low level device control */
+#include <net/ethernet.h>   /* L2 protocols */
+#include <linux/if_packet.h>
 
 /****** other headers ******/
 #include <unistd.h>
@@ -89,6 +95,20 @@ protected:
      */
     int mSetIpAddress();
 
+    /**
+     *
+     */
+    int mStartSniffing();
+
+    /**
+     *
+     */
+    int mOpenSocketPromMode();
+
+    /**
+     *
+     */
+    std::string mExec(const char*);
 public:
     /****** VARIABLES ******/
 
