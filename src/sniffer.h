@@ -31,6 +31,7 @@
 #include <sys/ioctl.h>      /* low level device control */
 #include <net/ethernet.h>   /* L2 protocols */
 #include <linux/if_packet.h>
+#include <pcap.h>
 
 /****** other headers ******/
 #include <unistd.h>
@@ -103,12 +104,12 @@ protected:
     /**
      *
      */
-    int mOpenSocketPromMode();
+    std::string mExec(const char*);
 
     /**
-     *
+     * @brief Callback method for pcap_loop.
      */
-    std::string mExec(const char*);
+    static void mProcessPacket(u_char *, const struct pcap_pkthdr *, const u_char *);
 public:
     /****** VARIABLES ******/
 

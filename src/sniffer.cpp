@@ -45,8 +45,50 @@ sniffer::sniffer() {
     mSetDefaultAddressFlag();
 }
 
+void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
+    std::cout << "Processing packet" << std::endl;
+}
+
 int sniffer::mStartSniffing(){
-    /* open socket in promiscuous mode */
+    char errBuff[PCAP_ERRBUF_SIZE];
+    char *device = (char *)mInterfaceFlag.second.c_str();
+
+    /* netmask of the sniffing device */
+    bpf_u_int32 mask;
+    /* IP of the sniffing device */
+    bpf_u_int32 IPAddr;
+
+    /* header of the packet */
+    struct pcap_pkthdr header;
+    /* actual packet */
+    const u_char *packet;
+
+
+    if(-1 == pcap_lookupnet(device, &IPAddr, &mask, errBuff)){
+        std::cerr << "Failed to acquire netmask" << std::endl;
+        IPAddr = 0;
+        mask = 0;
+    }
+
+    /* open capture in promiscuous mode */
+    pcap_t *handler;
+    if(NULL == (handler = pcap_open_live(device, BUFSIZ, 1, 1000, errBuff))){
+        std::cerr << "Failed to open device" << std::endl;
+        return E_ESTABILISHINGCONNECTION;
+    }
+
+    /* system is missing link layer headers */
+    if(DLT_EN10MB != pcap_datalink(handler)){
+        std::cerr << "Missing required layers" << std::endl;
+        return E_ESTABILISHINGCONNECTION;
+    }
+
+    /* get packets */
+    pcap_loop(handler, -1, mProcessPacket, NULL);
+    std::cout << "Packet has length: " << header.len << std::endl;
+
+    /* clean up */
+    pcap_close(handler);
 
     return E_OK;
 }
@@ -324,5 +366,5 @@ int sniffer::mArgCheck(int argc, char *argv[]){
         return E_MISSINGREQUIREDARG;
     }
 
-    return E_OK;
+    return mStartSniffing();
 }
