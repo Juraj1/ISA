@@ -6,7 +6,7 @@ OBJFILES=	sniffer.o\
 
 
 ${BINARY}:${OBJFILES}
-	${CC} ${OBJFILES} -o  ${BINARY}
+	${CC} ${OBJFILES} -lpcap -o  ${BINARY}
 	mv *.o objfiles
 
 main.o:src/main.cpp
