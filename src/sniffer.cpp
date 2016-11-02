@@ -47,6 +47,7 @@ sniffer::sniffer() {
 
 void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
     std::cout << "Processing packet" << std::endl;
+    std::cout << "Packet has length: " << header.len << std::endl;
 }
 
 int sniffer::mStartSniffing(){
@@ -85,7 +86,6 @@ int sniffer::mStartSniffing(){
 
     /* get packets */
     pcap_loop(handler, -1, mProcessPacket, NULL);
-    std::cout << "Packet has length: " << header.len << std::endl;
 
     /* clean up */
     pcap_close(handler);
