@@ -24,6 +24,7 @@
 #include <sys/socket.h>     /* Core socket functions */
 #include <netinet/in.h>     /* AF_INET family */
 #include <netinet/tcp.h>    /* TCP headers */
+#include <netinet/ether.h>  /* ethernet frames */
 #include <sys/un.h>         /* PF_UNIX */
 #include <arpa/inet.h>      /* Functions for IP addr manipulation */
 #include <netdb.h>          /* Protocol name translation */

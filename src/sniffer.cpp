@@ -46,8 +46,12 @@ sniffer::sniffer() {
 }
 
 void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
+    struct ether_header *head = (struct ether_header *) packet;
+
     std::cout << "Processing packet" << std::endl;
-    std::cout << "Packet has length: " << header.len << std::endl;
+    std::cout << "Source MAC address: " << ether_ntoa((struct ether_addr *) head->ether_shost) << std::endl;
+
+
 }
 
 int sniffer::mStartSniffing(){
