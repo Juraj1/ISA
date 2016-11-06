@@ -12,6 +12,7 @@
  */
 
 sniffer::sniffer() {
+    mPacketCounter = 0;
     /* we must set default uname, which can be later overwritten */
     mSetDefaultUname();
 
@@ -46,12 +47,37 @@ sniffer::sniffer() {
 }
 
 void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
+    /* get the ethernet frame head */
     struct ether_header *head = (struct ether_header *) packet;
+    bool lldp_type = false;
+    /* type of ethernet header */
+    uint8_t ethTypeFlag = 0;
 
-    std::cout << "Processing packet" << std::endl;
-    std::cout << "Source MAC address: " << ether_ntoa((struct ether_addr *) head->ether_shost) << std::endl;
+    /* WOLOLO! Unit has been converted to the right endian */
+    uint16_t ethType = ntohs(head->ether_type);
+    /* check if it is ethernet II or IEEE 802.3 */
+    /* IEEE 802.3 */
+    if(1500 >= ethType){
+        ethTypeFlag = ETHERNET_IEEE;
+    /* ETHER II */
+    } else if(1536 <= ethType){
+        ethTypeFlag = ETHERNET_II;
 
-
+        /* get type of payload */
+        if(LLDP_CODE == ethType){
+            lldp_type = true;
+        }
+    /* invalid ethernet frame */
+    } else {
+        return;
+    }
+    std::cout   << "******************************" << std::endl;
+    std::cout   << ((ethTypeFlag == ETHERNET_IEEE)?"Ethernet 802.3 header: ":"Ethernet II header: ") << std::endl;
+    std::cout   << "Destination MAC address: " << ether_ntoa((struct ether_addr *) head->ether_dhost)
+                << " Source MAC address: " << ether_ntoa((struct ether_addr *) head->ether_shost)
+                << ((ethTypeFlag == ETHERNET_IEEE)?" Payload length: ":" Payload type: ")
+                << "0x" << std::hex << ethType << std::endl;
+    std::cout << "******************************" << std::endl;
 }
 
 int sniffer::mStartSniffing(){
@@ -62,12 +88,6 @@ int sniffer::mStartSniffing(){
     bpf_u_int32 mask;
     /* IP of the sniffing device */
     bpf_u_int32 IPAddr;
-
-    /* header of the packet */
-    struct pcap_pkthdr header;
-    /* actual packet */
-    const u_char *packet;
-
 
     if(-1 == pcap_lookupnet(device, &IPAddr, &mask, errBuff)){
         std::cerr << "Failed to acquire netmask" << std::endl;

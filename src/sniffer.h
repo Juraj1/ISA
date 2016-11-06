@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <memory>
 #include <stdexcept>
+#include <iomanip>
 #include <string>
 
 /****** networking headers ******/
@@ -40,10 +41,18 @@
 #include <sys/utsname.h>    /* uname */
 #include <sstream>          /* stringstream */
 
+/* ethernet II header code */
+#define ETHERNET_II 0x1
+/* IEEE 802.3 ethernet header */
+#define ETHERNET_IEEE 0x2
+
+/* LLDP type code */
+#define LLDP_CODE 0x88cc
+
 
 
 class sniffer{
-protected:
+private:
     /* argument flags */
     std::pair<bool, std::string>mInterfaceFlag;    /* -i */
     bool mHelloFlag;                               /* --send-hello */
@@ -59,6 +68,7 @@ protected:
     /* uname struct */
     struct utsname mSysInfo;
 
+    uint64_t mPacketCounter;
     /****** METHODS ******/
     /**
      * @brief Checks whether string is a number.
