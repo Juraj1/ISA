@@ -245,7 +245,6 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                     return E_UNKNOWN;
                 }
 
-                std::cout << "Interface: " << optarg <<std::endl;
                 break;
             case 0:
                 /* --send-hello */
@@ -375,15 +374,15 @@ int sniffer::mArgCheck(int argc, char *argv[]){
         }
     }
 
-    std::cout << "******DEBUG******" << std::endl;
-    std::cout << mInterfaceFlag.second << std::endl;
-    std::cout << mPlatformFlag.second << std::endl;
-    std::cout << mVersionFlag.second;
-    std::cout << mDeviceIdFlag.second << std::endl;
-    char str[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &mAddressFlag.second.sin_addr, str, INET_ADDRSTRLEN);
-    std::cout << str << std::endl;
-    std::cout << "******DEBUG******" << std::endl;
+//    std::cout << "******DEBUG******" << std::endl;
+//    std::cout << mInterfaceFlag.second << std::endl;
+//    std::cout << mPlatformFlag.second << std::endl;
+//    std::cout << mVersionFlag.second;
+//    std::cout << mDeviceIdFlag.second << std::endl;
+//    char str[INET_ADDRSTRLEN];
+//    inet_ntop(AF_INET, &mAddressFlag.second.sin_addr, str, INET_ADDRSTRLEN);
+//    std::cout << str << std::endl;
+//    std::cout << "******DEBUG******" << std::endl;
 
     /* Missing the only required argument, therefore I must quit the app */
     if(!mInterfaceFlag.first){
