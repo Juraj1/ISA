@@ -49,6 +49,12 @@
 /* LLDP type code */
 #define LLDP_CODE 0x88cc
 
+/* CDP type code */
+#define CDP_CODE 0x2000
+
+/* ethernet frame size */
+#define ETHER_SIZE 14
+
 
 
 class sniffer{

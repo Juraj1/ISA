@@ -49,7 +49,8 @@ sniffer::sniffer() {
 void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
     /* get the ethernet frame head */
     struct ether_header *head = (struct ether_header *) packet;
-    bool lldp_type = false;
+    bool lldpProtocol = false;
+    bool cdpProtocol = false;
     /* type of ethernet header */
     uint8_t ethTypeFlag = 0;
 
@@ -59,24 +60,44 @@ void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, con
     /* IEEE 802.3 */
     if(1500 >= ethType){
         ethTypeFlag = ETHERNET_IEEE;
+
+        /* get type of payload */
+        uint16_t cdpType;
+        /* copy type from CDP */
+        memcpy(&cdpType, (packet + 20), 2);
+        cdpType = ntohs(cdpType);
+
+        if(CDP_CODE == cdpType){
+            cdpProtocol = true;
+        }
     /* ETHER II */
     } else if(1536 <= ethType){
         ethTypeFlag = ETHERNET_II;
 
-        /* get type of payload */
+        /* if type of payload is LLDP */
         if(LLDP_CODE == ethType){
-            lldp_type = true;
+            lldpProtocol = true;
         }
     /* invalid ethernet frame */
     } else {
         return;
     }
+
+    /* we dont have either CDP or LLDP protocol here */
+    if(!(cdpProtocol || lldpProtocol)){
+        return;
+    }
+
     std::cout   << "******************************" << std::endl;
+    /* ethernet header */
     std::cout   << ((ethTypeFlag == ETHERNET_IEEE)?"Ethernet 802.3 header: ":"Ethernet II header: ") << std::endl;
     std::cout   << "Destination MAC address: " << ether_ntoa((struct ether_addr *) head->ether_dhost)
                 << " Source MAC address: " << ether_ntoa((struct ether_addr *) head->ether_shost)
                 << ((ethTypeFlag == ETHERNET_IEEE)?" Payload length: ":" Payload type: ")
                 << "0x" << std::hex << ethType << std::endl;
+
+    /* CDP or LLDP dump */
+    std::cout   << ((cdpProtocol)?"Payload: CDP protocol":"Payload: LLDP protocol") << std::endl;
     std::cout << "******************************" << std::endl;
 }
 
