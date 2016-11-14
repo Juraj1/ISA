@@ -56,6 +56,7 @@
 #define ETHER_SIZE 14
 
 
+/* source for LLDP info: http://www.ieee802.org/1/files/public/docs2002/lldp-protocol-00.pdf */
 
 class sniffer{
 private:

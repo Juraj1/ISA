@@ -64,11 +64,17 @@ void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, con
         /* get type of payload */
         uint16_t cdpType;
         /* copy type from CDP */
+        /* 6 for Dest Addr + 6 for Src Addr + 2 for Length +
+         * + 1 for DSAP + 1 for SSAP + 1 for Control +
+         * + 3 for Vendor Code == 20 , this is index of our local code
+         * src: http://www.wildpackets.com/resources/compendium/ethernet/frame_snap_iee8023#SSAP */
         memcpy(&cdpType, (packet + 20), 2);
         cdpType = ntohs(cdpType);
 
         if(CDP_CODE == cdpType){
             cdpProtocol = true;
+        } else {
+            return;
         }
     /* ETHER II */
     } else if(1536 <= ethType){
@@ -77,16 +83,15 @@ void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, con
         /* if type of payload is LLDP */
         if(LLDP_CODE == ethType){
             lldpProtocol = true;
+        } else {
+            return;
         }
+
     /* invalid ethernet frame */
     } else {
         return;
     }
 
-    /* we dont have either CDP or LLDP protocol here */
-    if(!(cdpProtocol || lldpProtocol)){
-        return;
-    }
 
     std::cout   << "******************************" << std::endl;
     /* ethernet header */
