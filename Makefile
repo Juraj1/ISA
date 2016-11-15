@@ -1,6 +1,6 @@
 BINARY=myL2monitor
 CC=g++
-CFLAGS=-std=c++11 -Wall -pedantic 
+CFLAGS=-std=c++11 -Wall -pedantic -ggdb
 OBJFILES=	sniffer.o\
 					main.o
 

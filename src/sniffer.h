@@ -56,6 +56,20 @@
 /* ethernet frame size */
 #define ETHER_HEADER_SIZE 14
 
+/* system capabilities */
+#define CAP_OTHER 0x1
+#define CAP_REPEATER 0x2
+#define CAP_MAC_BRIDGE 0x4
+#define CAP_WLAN_ACC_POINT 0x8
+#define CAP_ROUTER 0x10
+#define CAP_TELEPHONE 0x20
+#define CAP_DOCSIS_CABLE_DEVICE 0x40
+#define CAP_STATION_ONLY 0x80
+#define CAP_C_VLAN_VLAN_BRIDGE 0x100
+#define CAP_S_VLAN_VLAN_BRIDGE 0x200
+#define CAP_TWO_PORT_MAC_RELAY 0x400
+
+
 
 /* source for LLDP info: IEEE Std 802.1AB-2009 */
 
