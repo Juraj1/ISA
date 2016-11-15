@@ -20,6 +20,7 @@
 #include <stdexcept>
 #include <iomanip>
 #include <string>
+#include <vector>
 
 /****** networking headers ******/
 #include <sys/socket.h>     /* Core socket functions */
@@ -43,7 +44,7 @@
 
 /* ethernet II header code */
 #define ETHERNET_II 0x1
-/* IEEE 802.3 ethernet header */
+/* IEEE 802.3 ethernet header code */
 #define ETHERNET_IEEE 0x2
 
 /* LLDP type code */
@@ -53,10 +54,10 @@
 #define CDP_CODE 0x2000
 
 /* ethernet frame size */
-#define ETHER_SIZE 14
+#define ETHER_HEADER_SIZE 14
 
 
-/* source for LLDP info: http://www.ieee802.org/1/files/public/docs2002/lldp-protocol-00.pdf */
+/* source for LLDP info: IEEE Std 802.1AB-2009 */
 
 class sniffer{
 private:
@@ -75,7 +76,40 @@ private:
     /* uname struct */
     struct utsname mSysInfo;
 
-    uint64_t mPacketCounter;
+    typedef enum{
+        portIdSubtype_reserved = 0,
+        portIdSubtype_interfaceAlias,
+        portIdSubtype_portComponent,
+        portIdSubtype_macAddress,
+        portIdSubtype_networkAddress,
+        portIdSubtype_interfaceName,
+        portIdSubtype_agentCircuitId,
+        portIdSubtype_locallyAssigned
+    }mPortIdSubtype_t;
+
+    typedef enum{
+        tlv_endOfLLDP = 0,
+        tlv_chassisID,
+        tlv_portID,
+        tlv_TTL,
+        tlv_portDescription,
+        tlv_systemName,
+        tlv_systemDescription,
+        tlv_systemCapabilities,
+        tlv_managementAddress,
+    }mTlvType_t;
+
+    typedef enum{
+        chassisID_Reserved = 0,
+        chassisID_ChassisComponent,
+        chassisID_InterfaceAlias,
+        chassisID_PortComponent,
+        chassisID_MacAddress,
+        chassisID_NetworkAddress,
+        chassisID_InterfaceName,
+        chassisID_LocallyAssigned
+    }mChassisID_t;
+
     /****** METHODS ******/
     /**
      * @brief Checks whether string is a number.
@@ -128,6 +162,11 @@ private:
      * @brief Callback method for pcap_loop.
      */
     static void mProcessPacket(u_char *, const struct pcap_pkthdr *, const u_char *);
+
+    /**
+     *
+     */
+    static int mParseLLDP(const u_char *);
 public:
     /****** VARIABLES ******/
 

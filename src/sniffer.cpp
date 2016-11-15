@@ -12,7 +12,6 @@
  */
 
 sniffer::sniffer() {
-    mPacketCounter = 0;
     /* we must set default uname, which can be later overwritten */
     mSetDefaultUname();
 
@@ -44,6 +43,371 @@ sniffer::sniffer() {
 
     /* IP address init */
     mSetDefaultAddressFlag();
+}
+
+int sniffer::mParseLLDP(const u_char *packet) {
+    u_char *packetPointer = (u_char *)packet;
+
+    /* | Chasis TLV | Port ID TLV | TTL TLV | OPTIONAL TLVs | End of LLDPDU TLV | */
+
+    /*
+     * TLV FORMAT:
+     * | 7 bit TYPE | 9 bit LENGTH | N Octets of data |
+     */
+
+    std::cout << "LLDP contains: " << std::endl;
+    uint16_t dataLen = 0;
+    uint16_t tlvType = 0;
+    char *data = NULL;
+
+    for (int i = 1; ; i++) {
+        /* read TLV header and move pointer */
+        memcpy(&dataLen, packetPointer, 2);
+        packetPointer += 2;
+        dataLen = ntohs(dataLen);
+
+        /* get TLV Type */
+        tlvType = dataLen;
+        tlvType >>= 9;
+
+        /* clear top 7 bits to get chasis data length */
+        dataLen &= 0x01FF;
+
+        switch(tlvType){
+            /* end of LLDP packet */
+            case tlv_endOfLLDP:{
+                return 0;
+            }
+            case tlv_chassisID:{
+                /* read chassis id subtype and move pointer to another byte */
+                uint8_t idSubtype;
+                memcpy(&idSubtype, packetPointer++, 1);
+                dataLen--;
+                std::string idType = "";
+
+                data = (char *)malloc(dataLen * sizeof(char));
+                switch(idSubtype){
+                    case chassisID_Reserved:{
+                        idType = "Reserved";
+                        break;
+                    }
+                    case chassisID_ChassisComponent:{
+                        idType = "Chassis component";
+
+                        std::vector<char> stringVector;
+                        for(int j = 0; j < dataLen; j++){
+                            /* read byte and move through paket to next index */
+                            stringVector.push_back(data[i]);
+                            packetPointer++;
+                            dataLen--;
+                        }
+                        std::string str(stringVector.begin(), stringVector.end());
+
+                        std::cout << "TLV Type: Chassis ID - "<< idType << " | " << "data: " << str << std::endl;
+                        break;
+                    }
+                    case chassisID_InterfaceAlias:{
+                        idType = "Interface alias";
+                        std::vector<char> stringVector;
+                        for(int j = 0; j < dataLen; j++){
+                            /* read byte and move through paket to next index */
+                            stringVector.push_back(data[i]);
+                            packetPointer++;
+                            dataLen--;
+                        }
+                        std::string str(stringVector.begin(), stringVector.end());
+
+                        std::cout << "TLV Type: Chassis ID - "<< idType << " | " << "data: " << str << std::endl;
+                        break;
+                    }
+                    case chassisID_PortComponent:{
+                        idType = "Port component";
+                        std::vector<char> stringVector;
+                        for(int j = 0; j < dataLen; j++){
+                            /* read byte and move through paket to next index */
+                            stringVector.push_back(data[i]);
+                            packetPointer++;
+                            dataLen--;
+                        }
+                        std::string str(stringVector.begin(), stringVector.end());
+
+                        std::cout << "TLV Type: Chassis ID - "<< idType << " | " << "data: " << str << std::endl;
+                        break;
+                    }
+                    case chassisID_MacAddress:{
+                        idType = "MAC address";
+                        struct ether_header *head = (struct ether_header *)malloc(sizeof(struct ether_header));
+                        /* get MAC address and move pointer */
+                        memcpy(&(head->ether_dhost), packetPointer, 6);
+                        packetPointer += 6;
+                        dataLen -= 6;
+
+                        std::cout << "TLV Type: Chassis ID - "<< idType << " | " << "data: " << ether_ntoa((struct ether_addr *)head->ether_dhost) << std::endl;
+                        free(head);
+                        break;
+                    }
+                    case chassisID_NetworkAddress:{
+                        idType = "Network address";
+                        /* get address family and move pointer */
+                        uint8_t addressFamily;
+                        memcpy(&addressFamily, packetPointer++, 1);
+                        dataLen--;
+                        std::string str = "";
+                        switch(addressFamily){
+                            case 0: {
+                                str = "Reserved";
+                                std::cout << "TLV Type: Chassis ID - " << idType << " | " << "IANA AFN: "
+                                          << addressFamily << " = " << str << std::endl;
+                                break;
+                            }
+                            case 1:{
+                                str = "IPv4";
+                                struct in_addr *addr = (struct in_addr *)malloc(sizeof(struct in_addr));
+
+                                /* copy IP from packet to memory and move packetPointer */
+                                memcpy(addr, packetPointer, 4);
+                                packetPointer += 4;
+                                dataLen -= 4;
+
+                                /* get address to string */
+                                char ipv4addr[INET_ADDRSTRLEN];
+                                inet_ntop(AF_INET, addr, ipv4addr, INET_ADDRSTRLEN);
+
+                                std::cout   << "TLV Type: Chassis ID - "<< idType << " | " << "IANA AFN: " << addressFamily << " = " << str
+                                            << "Address: " << ipv4addr <<std::endl;
+
+                                free(addr);
+                                break;
+                            }
+                            case 2: {
+                                str = "IPv6";
+                                std::cout << "TLV Type: Chassis ID - " << idType << " | " << "IANA AFN: "
+                                          << addressFamily << " = " << str << std::endl;
+                                packetPointer += dataLen;
+                                dataLen = 0;
+                                break;
+                            }
+                            default: {
+                                str = "Some other address type";
+                                std::cout << "TLV Type: Chassis ID - " << idType << " | " << "IANA AFN: "
+                                          << addressFamily << " = " << str << std::endl;
+                                packetPointer += dataLen;
+                                dataLen = 0;
+                            }
+                        }
+                        break;
+                    }
+                    case chassisID_InterfaceName:{
+                        idType = "Interface name";
+                        std::vector<char> stringVector;
+                        for(int j = 0; j < dataLen; j++){
+                            /* read byte and move through paket to next index */
+                            stringVector.push_back(data[i]);
+                            packetPointer++;
+                            dataLen--;
+                        }
+                        std::string str(stringVector.begin(), stringVector.end());
+
+                        std::cout << "TLV Type: Chassis ID - "<< idType << " | " << "data: " << str << std::endl;
+                        break;
+                    }
+                    case chassisID_LocallyAssigned:{
+                        idType = "Locally assigned";
+                        std::vector<char> stringVector;
+                        for(int j = 0; j < dataLen; j++){
+                            /* read byte and move through paket to next index */
+                            stringVector.push_back(data[i]);
+                            packetPointer++;
+                            dataLen--;
+                        }
+                        std::string str(stringVector.begin(), stringVector.end());
+
+                        std::cout << "TLV Type: Chassis ID - "<< idType << " | " << "data: " << str << std::endl;
+                        break;
+                    }
+                    default:
+                        idType = "Reserved";
+                        packetPointer += dataLen;
+                        dataLen = 0;
+                }
+
+                free(data);
+                break;
+            }
+            case tlv_portID:{
+                /* get portID subtype and move packet pointer */
+                uint8_t IDsubtype;
+                memcpy(&IDsubtype, packetPointer++, 1);
+                dataLen--;
+
+                /* ID subtype basis */
+                std::string str = "";
+                char *subtypeData = (char *)malloc(dataLen * sizeof(char));
+
+                switch(IDsubtype){
+                    case portIdSubtype_reserved: {
+                        str = "Reserved";
+                        std::cout << "TLV Type: PortID ID - " << str << std::endl;
+                        packetPointer += dataLen;
+                        dataLen = 0;
+
+                        break;
+                    }
+                    case portIdSubtype_interfaceAlias: {
+                        str = "Interface alias";
+                        /* get the rest of TLV body */
+                        memcpy(subtypeData, packetPointer, dataLen);
+                        packetPointer += dataLen;
+                        dataLen = 0;
+
+                        std::cout << "TLV Type: PortID ID - " << str << " | " << "data: " << subtypeData << std::endl;
+                        break;
+                    }
+                    case portIdSubtype_portComponent: {
+                        str = "Port component";
+                        /* get the rest of TLV body */
+                        memcpy(subtypeData, packetPointer, dataLen);
+                        packetPointer += dataLen;
+                        dataLen = 0;
+
+                        std::cout << "TLV Type: PortID ID - " << str << " | " << "data: " << subtypeData << std::endl;
+                        break;
+                    }
+                    case portIdSubtype_macAddress: {
+                        str = "MAC address";
+                        struct ether_header *head = (struct ether_header *) malloc(sizeof(struct ether_header));
+                        /* get MAC address and move pointer */
+                        memcpy(&(head->ether_dhost), packetPointer, 6);
+                        packetPointer += 6;
+                        dataLen -= 6;
+
+                        std::cout << "TLV Type: PortID ID - " << str << " | " << "data: "
+                                  << ether_ntoa((struct ether_addr *) head->ether_dhost) << std::endl;
+
+                        free(head);
+                        break;
+                    }
+                    case portIdSubtype_networkAddress:{
+                        str = "Network address";
+                        /* get address family and move pointer */
+                        uint8_t addressFamily;
+                        memcpy(&addressFamily, packetPointer++, 1);
+                        dataLen--;
+
+                        std::string strA = "";
+                        switch(addressFamily){
+                            case 0:{
+                                strA = "Reserved";
+                                packetPointer += dataLen;
+                                dataLen = 0;
+
+                                std::cout << "TLV Type: PortID ID - "<< str << " | " << "IANA AFN: " << addressFamily << " = " << strA << std::endl;
+                                break;
+                            }
+                            case 1: {
+                                strA = "IPv4";
+                                struct in_addr *addr = (struct in_addr *) malloc(sizeof(struct in_addr));
+
+                                /* copy IP from packet to memory and move packetPointer */
+                                memcpy(addr, packetPointer, 4);
+                                packetPointer += 4;
+                                dataLen -= 4;
+
+                                /* get address to string */
+                                char ipv4addr[INET_ADDRSTRLEN];
+                                inet_ntop(AF_INET, addr, ipv4addr, INET_ADDRSTRLEN);
+
+                                std::cout << "TLV Type: PortID ID - " << str << " | " << "IANA AFN: " << addressFamily
+                                          << " = " << strA
+                                          << "Address: " << ipv4addr << std::endl;
+
+                                free(addr);
+                                break;
+                            }
+                            case 2: {
+                                strA = "IPv6";
+                                std::cout << "TLV Type: PortID ID - " << str << " | " << "IANA AFN: " << addressFamily
+                                          << " = " << strA << std::endl;
+                                packetPointer += dataLen;
+                                dataLen = 0;
+                                break;
+                            }
+                            default: {
+                                strA = "Some other address type";
+                                std::cout << "TLV Type: PortID ID - " << str << " | " << "IANA AFN: " << addressFamily
+                                          << " = " << strA << std::endl;
+                                packetPointer += dataLen;
+                                dataLen = 0;
+                            }
+                        }
+                        break;
+                    }
+                    case portIdSubtype_interfaceName: {
+                        str = "Interface name";
+                        /* get the rest of TLV body */
+                        memcpy(subtypeData, packetPointer, dataLen);
+                        packetPointer += dataLen;
+                        dataLen = 0;
+
+                        std::cout << "TLV Type: PortID ID - " << str << " | " << "data: " << subtypeData << std::endl;
+                        break;
+                    }
+                    case portIdSubtype_agentCircuitId: {
+                        str = "Agent circuit ID";
+                        /* get the rest of TLV body */
+                        memcpy(subtypeData, packetPointer, dataLen);
+                        packetPointer += dataLen;
+                        dataLen = 0;
+
+                        std::cout << "TLV Type: PortID ID - " << str << " | " << "data: " << subtypeData << std::endl;
+                        break;
+                    }
+                    case portIdSubtype_locallyAssigned: {
+                        str = "Locally assigned";
+                        /* get the rest of TLV body */
+                        memcpy(subtypeData, packetPointer, dataLen);
+                        packetPointer += dataLen;
+                        dataLen = 0;
+
+                        std::cout << "TLV Type: PortID ID - " << str << " | " << "data: " << subtypeData << std::endl;
+                        break;
+                    }
+                    default:{
+                        str = "Reserved";
+                        memcpy(subtypeData, packetPointer, dataLen);
+                        packetPointer += dataLen;
+                        dataLen = 0;
+
+                        std::cout << "TLV Type: PortID ID - " << str << " | " << "data: " << subtypeData << std::endl;
+                    }
+                }
+                free(subtypeData);
+                break;
+            }
+            case tlv_TTL:{
+                break;
+            }
+            case tlv_portDescription:{
+                break;
+            }
+            case tlv_systemName:{
+                break;
+            }
+            case tlv_systemDescription:{
+                break;
+            }
+            case tlv_systemCapabilities:{
+                break;
+            }
+            case tlv_managementAddress:{
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    return 0;
 }
 
 void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
@@ -92,17 +456,23 @@ void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, con
         return;
     }
 
-
     std::cout   << "******************************" << std::endl;
     /* ethernet header */
     std::cout   << ((ethTypeFlag == ETHERNET_IEEE)?"Ethernet 802.3 header: ":"Ethernet II header: ") << std::endl;
     std::cout   << "Destination MAC address: " << ether_ntoa((struct ether_addr *) head->ether_dhost)
-                << " Source MAC address: " << ether_ntoa((struct ether_addr *) head->ether_shost)
-                << ((ethTypeFlag == ETHERNET_IEEE)?" Payload length: ":" Payload type: ")
+                << " | Source MAC address: " << ether_ntoa((struct ether_addr *) head->ether_shost)
+                << ((ethTypeFlag == ETHERNET_IEEE)?" | Payload length: ":" | Payload type: ")
                 << "0x" << std::hex << ethType << std::endl;
 
     /* CDP or LLDP dump */
     std::cout   << ((cdpProtocol)?"Payload: CDP protocol":"Payload: LLDP protocol") << std::endl;
+
+    if(lldpProtocol){
+        /* pass pointer to packet without ethernet header */
+        mParseLLDP(packet + ETHER_HEADER_SIZE);
+    }
+
+
     std::cout << "******************************" << std::endl;
 }
 
