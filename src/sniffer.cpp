@@ -543,10 +543,10 @@ int sniffer::mParseLLDP(const u_char *packet) {
             case tlv_managementAddress:{
                 std::cout << "TLV Type: Management Address | ";
                 /* get management string length and move packet pointer */
-                uint8_t managementAddrStrLen;
+                uint16_t managementAddrStrLen = 0;
                 memcpy(&managementAddrStrLen, packetPointer++, 1);
                 /* TODO fix parsovani pameti */
-                std::cout << "Length of TLV: " << dataLen << " | " << "Address string length: " << (uint8_t)managementAddrStrLen << " | " << std::endl;
+                std::cout << "Length of TLV: " << dataLen << " | " << "Address string length: " << std::hex << managementAddrStrLen << " | " << std::endl;
                 dataLen--;
 
                 /* get management addres subtype */
@@ -581,7 +581,7 @@ int sniffer::mParseLLDP(const u_char *packet) {
                 }
 
                 /*get interface numbering subtype */
-                uint8_t interfaceNumberingSubtype;
+                uint16_t interfaceNumberingSubtype = 0;
                 memcpy(&interfaceNumberingSubtype, packetPointer++, 1);
                 dataLen--;
 
