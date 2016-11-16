@@ -111,6 +111,7 @@ private:
         tlv_systemDescription,
         tlv_systemCapabilities,
         tlv_managementAddress,
+        tlv_organizationallySpecific = 127
     }mTlvType_t;
 
     typedef enum{
