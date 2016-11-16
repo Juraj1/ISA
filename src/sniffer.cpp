@@ -247,7 +247,7 @@ int sniffer::mParseLLDP(const u_char *packet) {
 
                 /* ID subtype basis */
                 std::string str = "";
-                char *subtypeData = (char *)malloc(dataLen * sizeof(char) + sizeof(char));
+                char *subtypeData = (char *)malloc(dataLen * sizeof(char));// + sizeof(char));
                 bzero(subtypeData, dataLen + 1);
                 switch(IDsubtype){
                     case portIdSubtype_reserved: {
@@ -402,7 +402,7 @@ int sniffer::mParseLLDP(const u_char *packet) {
             }
             case tlv_portDescription:{
                 /* get data from TLV and move pointer */
-                char *description = (char *)malloc(dataLen * sizeof(char) + sizeof(char));
+                char *description = (char *)malloc(dataLen * sizeof(char));// + sizeof(char));
                 bzero(description, dataLen + 1);
 
                 memcpy(description, packetPointer, dataLen);
@@ -415,7 +415,7 @@ int sniffer::mParseLLDP(const u_char *packet) {
             }
             case tlv_systemName:{
                 /* get data from TLV and move pointer */
-                char *description = (char *)malloc(dataLen * sizeof(char) + sizeof(char));
+                char *description = (char *)malloc(dataLen * sizeof(char));// + sizeof(char));
                 bzero(description, dataLen + 1);
 
                 memcpy(description, packetPointer, dataLen);
@@ -428,7 +428,7 @@ int sniffer::mParseLLDP(const u_char *packet) {
             }
             case tlv_systemDescription:{
                 /* get data from TLV and move pointer */
-                char *description = (char *)malloc(dataLen * sizeof(char) + sizeof(char));
+                char *description = (char *)malloc(dataLen * sizeof(char));// + sizeof(char));
                 bzero(description, dataLen + 1);
 
                 memcpy(description, packetPointer, dataLen);
@@ -445,11 +445,13 @@ int sniffer::mParseLLDP(const u_char *packet) {
 
                 /* load system capabilities */
                 memcpy(&sysCap, packetPointer, 2);
+                sysCap = ntohs(sysCap);
                 packetPointer += 2;
                 dataLen -= 2;
 
                 /* load enabled capabilities */
                 memcpy(&enabledCap, packetPointer, 2);
+                enabledCap = ntohs(enabledCap);
                 packetPointer += 2;
                 dataLen -= 2;
 
@@ -544,7 +546,6 @@ int sniffer::mParseLLDP(const u_char *packet) {
                 uint8_t managementAddrStrLen;
                 memcpy(&managementAddrStrLen, packetPointer++, 1);
                 /* TODO fix parsovani pameti */
-                std::cout << "#DEBUG#" << managementAddrStrLen << "PICA" << std::endl;
                 std::cout << "Length of TLV: " << dataLen << " | " << "Address string length: " << (uint8_t)managementAddrStrLen << " | " << std::endl;
                 dataLen--;
 
@@ -592,7 +593,7 @@ int sniffer::mParseLLDP(const u_char *packet) {
                 packetPointer += 4;
                 dataLen -= 4;
 
-                std::cout << "          Interface number: " << interfaceNumber << std::endl;
+                std::cout << "          Interface number: " << std::hex << interfaceNumber << std::endl;
 
                 break;
             }
