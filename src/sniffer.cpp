@@ -928,7 +928,7 @@ int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
                 remainingPacketLenght -= dataLen;
                 dataLen = 0;
 
-                std::cout << "TLV Type: Platform | ID: " << ID << std::endl;
+                std::cout << "TLV Type: VTP Management Domain | ID: " << ID << std::endl;
 
                 free(ID);
                 break;
@@ -945,6 +945,101 @@ int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
                 } else {
                     std::cout << "Full" << std::endl;
                 }
+                break;
+            }
+            case mCiscoTlvType_managementAddresses:{
+                std::cout << "TLV Type: Management Addresses" << std::endl;
+
+                uint32_t addrCount;
+                memcpy(&addrCount, packetPointer, 4);
+                addrCount = ntohl(addrCount);
+                packetPointer += 4;
+                remainingPacketLenght -= 4;
+                dataLen -= 4;
+
+                std::cout << "          AddressCount: " << addrCount << std::endl;
+
+                uint8_t protocolType;
+                memcpy(&protocolType, packetPointer++, 1);
+                remainingPacketLenght--;
+                dataLen--;
+
+                uint8_t protocolLength;
+                memcpy(&protocolLength, packetPointer++, 1);
+                remainingPacketLenght--;
+                dataLen--;
+
+                switch(protocolType){
+                    case 1:{
+                        std::cout << "          Protocol Type: NLPID format" << " | ";
+
+                        /* therefore only 1 byte for protocol, after operation, shift */
+                        uint8_t protocol;
+                        memcpy(&protocol, packetPointer++, 1);
+                        remainingPacketLenght--;
+                        dataLen--;
+
+                        switch(protocol){
+                            case 0x81:{
+                                std::cout << "Protocol: ISO CLNS" << std::endl;
+                                break;
+                            }
+                            case 0xCC:{
+                                std::cout << "Protocol: IP" << " | ";
+
+                                uint16_t addrLen;
+                                memcpy(&addrLen, packetPointer, 2);
+                                addrLen = ntohs(addrLen);
+                                packetPointer += 2;
+                                remainingPacketLenght -= 2;
+                                dataLen -= 2;
+
+                                struct in_addr *addr = (struct in_addr *) malloc(sizeof(struct in_addr));
+
+                                /* copy IP from packet to memory and move packetPointer */
+                                memcpy(addr, packetPointer, 4);
+                                packetPointer += 4;
+                                remainingPacketLenght -= 4;
+                                dataLen -= 4;
+
+                                /* get address to string */
+                                char ipv4addr[INET_ADDRSTRLEN];
+                                inet_ntop(AF_INET, addr, ipv4addr, INET_ADDRSTRLEN);
+
+                                std::cout << "IP Address: " << ipv4addr;
+
+                                free(addr);
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    case 2:{
+                        std::cout << "          Protocol Type: 802.2 format" << " | ";
+                        uint64_t protocol;
+                        memcpy(&protocol, packetPointer, 8);
+                        /* get to format "normal people" use */
+                        protocol = htobe64(protocol);
+                        packetPointer += 8;
+                        remainingPacketLenght -= 8;
+                        dataLen -= 8;
+
+                        std::cout << "Protocol code: 0x" << std::hex << protocol;
+
+                        break;
+                    }
+                    default:{
+                        std::cout << "          Protocol Type: Unknown" << " | " ;
+                    }
+
+                }
+
+                std::cout << std::endl;
+
+                /* get the rest of TLV data */
+                packetPointer += dataLen;
+                remainingPacketLenght -= dataLen;
+                dataLen = 0;
                 break;
             }
             default:{

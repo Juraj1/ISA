@@ -98,17 +98,18 @@ private:
     struct utsname mSysInfo;
 
     typedef enum{
-        mCiscoTlvType_deviceID = 1,             /* 0x0001 */
-        mCiscoTlvType_address,                  /* 0x0002 */
-        mCiscoTlvType_portID,                   /* 0x0003 */
-        mCiscoTlvType_capabilities,             /* 0x0004 */
-        mCiscoTlvType_version,                  /* 0x0005 */
-        mCiscoTlvType_platform,                 /* 0x0006 */
-        mCiscoTlvType_ipNetworkPrefix,          /* 0x0007 */
-        mCiscoTlvType_vtpManagementDomain = 9,  /* 0x0009 */
-        mCiscoTlvType_nativeVLAN,               /* 0x000a */
-        mCiscoTlvType_duplex,                   /* 0x000b */
-        mCiscoTlvType_location                  /* 0x000c */
+        mCiscoTlvType_deviceID = 1,                 /* 0x0001 */
+        mCiscoTlvType_address,                      /* 0x0002 */
+        mCiscoTlvType_portID,                       /* 0x0003 */
+        mCiscoTlvType_capabilities,                 /* 0x0004 */
+        mCiscoTlvType_version,                      /* 0x0005 */
+        mCiscoTlvType_platform,                     /* 0x0006 */
+        mCiscoTlvType_ipNetworkPrefix,              /* 0x0007 */
+        mCiscoTlvType_vtpManagementDomain = 9,      /* 0x0009 */
+        mCiscoTlvType_nativeVLAN,                   /* 0x000a */
+        mCiscoTlvType_duplex,                       /* 0x000b */
+        mCiscoTlvType_location,                     /* 0x000c */
+        mCiscoTlvType_managementAddresses = 0x16    /* 0x0016 */
     }mCiscoTlvTypes;
 
     typedef enum{
