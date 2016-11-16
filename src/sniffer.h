@@ -56,7 +56,7 @@
 /* ethernet frame size */
 #define ETHER_HEADER_SIZE 14
 
-/* system capabilities */
+/* LLDP system capabilities */
 #define CAP_OTHER 0x1
 #define CAP_REPEATER 0x2
 #define CAP_MAC_BRIDGE 0x4
@@ -69,7 +69,14 @@
 #define CAP_S_VLAN_VLAN_BRIDGE 0x200
 #define CAP_TWO_PORT_MAC_RELAY 0x400
 
-
+/* CDP system capabilities */
+#define CDP_CAP_ROUTER 0x01
+#define CDP_CAP_TRANSPARENT_BRIDGE 0x02
+#define CDP_CAP_SOURCE_ROUTE_BRIDGE 0x04
+#define CDP_CAP_SWITCH 0x08
+#define CDP_CAP_HOST 0x10
+#define CDP_CAP_IGMP_CAPABLE 0x20
+#define CDP_CAP_REPEATER 0x40
 
 /* source for LLDP info: IEEE Std 802.1AB-2009 */
 
@@ -89,6 +96,20 @@ private:
 
     /* uname struct */
     struct utsname mSysInfo;
+
+    typedef enum{
+        mCiscoTlvType_deviceID = 1,             /* 0x0001 */
+        mCiscoTlvType_address,                  /* 0x0002 */
+        mCiscoTlvType_portID,                   /* 0x0003 */
+        mCiscoTlvType_capabilities,             /* 0x0004 */
+        mCiscoTlvType_version,                  /* 0x0005 */
+        mCiscoTlvType_platform,                 /* 0x0006 */
+        mCiscoTlvType_ipNetworkPrefix,          /* 0x0007 */
+        mCiscoTlvType_vtpManagementDomain = 9,  /* 0x0009 */
+        mCiscoTlvType_nativeVLAN,               /* 0x000a */
+        mCiscoTlvType_duplex,                   /* 0x000b */
+        mCiscoTlvType_location                  /* 0x000c */
+    }mCiscoTlvTypes;
 
     typedef enum{
         portIdSubtype_reserved = 0,
@@ -182,6 +203,11 @@ private:
      *
      */
     static int mParseLLDP(const u_char *);
+
+    /**
+     *
+     */
+    static int mParseCDP(const u_char *, const uint16_t);
 public:
     /****** VARIABLES ******/
 

@@ -631,6 +631,336 @@ int sniffer::mParseLLDP(const u_char *packet) {
     return 0;
 }
 
+int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
+
+    u_char *packetPointer = (u_char *)packet;
+    /* get version */
+    uint8_t version = 0;
+    memcpy(&version, packetPointer++, 1);
+
+    uint8_t  TTL = 0;
+    memcpy(&TTL, packetPointer++, 1);
+
+    uint16_t checksum;
+    memcpy(&checksum, packetPointer, 2);
+    packetPointer += 2;
+    checksum = ntohs(checksum);
+
+    std::cout << "CDP contains:" << std::endl;
+    std::cout << "CDP Version: " << (int)version << " | " << "Time to live: " << std::dec << (int)TTL << " | " << "Checksum: 0x" << std::hex << checksum << std::endl;
+
+    /* remaining packet length = total length - header */
+    uint16_t remainingPacketLenght = packetLength - 4;
+
+    /* iterating untill I am at the end of CDP payload */
+    while(0 < remainingPacketLenght){
+        /* get TLV type and move */
+        uint16_t type;
+        memcpy(&type, packetPointer, 2);
+        type = ntohs(type);
+        packetPointer += 2;
+        remainingPacketLenght -= 2;
+
+        /* get TLV len, from that get Value field length and move */
+        uint16_t dataLen;
+        mempcpy(&dataLen, packetPointer, 2);
+        dataLen = ntohs(dataLen);
+        dataLen -= 4;
+
+        packetPointer += 2;
+        remainingPacketLenght -= 2;
+        switch(type){
+            case mCiscoTlvType_deviceID:{
+                char *ID = (char *)malloc(dataLen * sizeof(char) + sizeof(char));
+                bzero(ID, dataLen * sizeof(char) + sizeof(char));
+                memcpy(ID, packetPointer, dataLen);
+                packetPointer += dataLen;
+                remainingPacketLenght -= dataLen;
+                dataLen = 0;
+
+                std::cout << "TLV Type: Device-ID | ID: " << ID << std::endl;
+
+                free(ID);
+                break;
+            }
+            case mCiscoTlvType_address:{
+
+                std::cout << "TLV Type: Address" << std::endl;
+
+                uint32_t addrCount;
+                memcpy(&addrCount, packetPointer, 4);
+                addrCount = ntohl(addrCount);
+                packetPointer += 4;
+                remainingPacketLenght -= 4;
+                dataLen -= 4;
+
+                std::cout << "          AddressCount: " << addrCount << std::endl;
+
+                uint8_t protocolType;
+                memcpy(&protocolType, packetPointer++, 1);
+                remainingPacketLenght--;
+                dataLen--;
+
+                uint8_t protocolLength;
+                memcpy(&protocolLength, packetPointer++, 1);
+                remainingPacketLenght--;
+                dataLen--;
+
+                switch(protocolType){
+                    case 1:{
+                        std::cout << "          Protocol Type: NLPID format" << " | ";
+
+                        /* therefore only 1 byte for protocol, after operation, shift */
+                        uint8_t protocol;
+                        memcpy(&protocol, packetPointer++, 1);
+                        remainingPacketLenght--;
+                        dataLen--;
+
+                        switch(protocol){
+                            case 0x81:{
+                                std::cout << "Protocol: ISO CLNS" << std::endl;
+                                break;
+                            }
+                            case 0xCC:{
+                                std::cout << "Protocol: IP" << " | ";
+
+                                uint16_t addrLen;
+                                memcpy(&addrLen, packetPointer, 2);
+                                addrLen = ntohs(addrLen);
+                                packetPointer += 2;
+                                remainingPacketLenght -= 2;
+                                dataLen -= 2;
+
+                                struct in_addr *addr = (struct in_addr *) malloc(sizeof(struct in_addr));
+
+                                /* copy IP from packet to memory and move packetPointer */
+                                memcpy(addr, packetPointer, 4);
+                                packetPointer += 4;
+                                remainingPacketLenght -= 4;
+                                dataLen -= 4;
+
+                                /* get address to string */
+                                char ipv4addr[INET_ADDRSTRLEN];
+                                inet_ntop(AF_INET, addr, ipv4addr, INET_ADDRSTRLEN);
+
+                                std::cout << "IP Address: " << ipv4addr;
+
+                                free(addr);
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    case 2:{
+                        std::cout << "          Protocol Type: 802.2 format" << " | ";
+                        uint64_t protocol;
+                        memcpy(&protocol, packetPointer, 8);
+                        /* get to format "normal people" use */
+                        protocol = htobe64(protocol);
+                        packetPointer += 8;
+                        remainingPacketLenght -= 8;
+                        dataLen -= 8;
+
+                        std::cout << "Protocol code: 0x" << std::hex << protocol;
+
+                        break;
+                    }
+                    default:{
+                        std::cout << "          Protocol Type: Unknown" << " | " ;
+                    }
+
+                }
+
+                std::cout << std::endl;
+
+                /* get the rest of TLV data */
+                packetPointer += dataLen;
+                remainingPacketLenght -= dataLen;
+                dataLen = 0;
+                break;
+            }
+            case mCiscoTlvType_portID:{
+                char *ID = (char *)malloc(dataLen * sizeof(char) + sizeof(char));
+                bzero(ID, dataLen * sizeof(char) + sizeof(char));
+                memcpy(ID, packetPointer, dataLen);
+                packetPointer += dataLen;
+                remainingPacketLenght -= dataLen;
+                dataLen = 0;
+
+                std::cout << "TLV Type: port-ID | ID: " << ID << std::endl;
+
+                free(ID);
+                break;
+            }
+            case mCiscoTlvType_capabilities:{
+                std::cout << "TLV Type: Capabilities" << std::endl;
+                uint32_t caps;
+                memcpy(&caps, packetPointer, dataLen);
+                caps = htonl(caps);
+
+                packetPointer += dataLen;
+                remainingPacketLenght -= dataLen;
+                dataLen = 0;
+
+                std::cout << "          ";
+                if(caps & CDP_CAP_ROUTER){
+                    std::cout << "Router: Yes";
+                } else {
+                    std::cout << "Router: No";
+                }
+
+                std::cout << std::endl << "          ";
+                if(caps & CDP_CAP_TRANSPARENT_BRIDGE){
+                    std::cout << "Transparent Bridge: Yes";
+                } else {
+                    std::cout << "Transparent Bridge: No";
+                }
+
+                std::cout << std::endl << "          ";
+                if(caps & CDP_CAP_SOURCE_ROUTE_BRIDGE){
+                    std::cout << "Source Route Bridge: Yes";
+                } else {
+                    std::cout << "Source Route Bridge: No";
+                }
+
+                std::cout << std::endl << "          ";
+                if(caps & CDP_CAP_SWITCH){
+                    std::cout << "Switch: Yes";
+                } else {
+                    std::cout << "Switch: No";
+                }
+
+                std::cout << std::endl << "          ";
+                if(caps & CDP_CAP_HOST){
+                    std::cout << "Host: Yes";
+                } else {
+                    std::cout << "Host: No";
+                }
+
+                std::cout << std::endl << "          ";
+                if(caps & CDP_CAP_IGMP_CAPABLE){
+                    std::cout << "IGMP Capable: Yes";
+                } else {
+                    std::cout << "IGMP Capable: No";
+                }
+
+                std::cout << std::endl << "          ";
+                if(caps & CDP_CAP_REPEATER){
+                    std::cout << "Repeater: Yes";
+                } else {
+                    std::cout << "Repeater: No";
+                }
+
+                std::cout << std::endl;
+                break;
+            }
+            case mCiscoTlvType_version:{
+                char *ID = (char *)malloc(dataLen * sizeof(char) + sizeof(char));
+                bzero(ID, dataLen * sizeof(char) + sizeof(char));
+                memcpy(ID, packetPointer, dataLen);
+                packetPointer += dataLen;
+                remainingPacketLenght -= dataLen;
+                dataLen = 0;
+
+                std::cout << "TLV Type: Version | ID: " << ID << std::endl;
+
+                free(ID);
+                break;
+            }
+            case mCiscoTlvType_platform:{
+                char *ID = (char *)malloc(dataLen * sizeof(char) + sizeof(char));
+                bzero(ID, dataLen * sizeof(char) + sizeof(char));
+                memcpy(ID, packetPointer, dataLen);
+                packetPointer += dataLen;
+                remainingPacketLenght -= dataLen;
+                dataLen = 0;
+
+                std::cout << "TLV Type: Platform | ID: " << ID << std::endl;
+
+                free(ID);
+                break;
+            }
+            case mCiscoTlvType_ipNetworkPrefix:{
+                std::cout << "TLV Type: IP Prefixes" << std::endl;
+                /* no IP prefixes */
+                if(0 == dataLen){
+                    break;
+                }
+
+                /* 5 bytes for each address */
+                uint16_t addCount = dataLen / 5;
+
+                for(int i = 0; i < addCount; i++){
+                    struct in_addr *addr = (struct in_addr *) malloc(sizeof(struct in_addr));
+
+                    /* copy IP from packet to memory and move packetPointer */
+                    memcpy(addr, packetPointer, 4);
+                    packetPointer += 4;
+                    remainingPacketLenght -= 4;
+                    dataLen -= 4;
+
+                    uint8_t prefix;
+                    memcpy(&prefix, packetPointer++, 1);
+                    remainingPacketLenght--;
+                    dataLen--;
+
+
+                    /* get address to string */
+                    char ipv4addr[INET_ADDRSTRLEN];
+                    inet_ntop(AF_INET, addr, ipv4addr, INET_ADDRSTRLEN);
+
+                    std::cout << "          IP Prefix: " << ipv4addr << "/" << std::dec << (int)prefix << std::endl;
+
+                    free(addr);
+                }
+
+                /* alignment */
+                packetPointer += dataLen;
+                remainingPacketLenght -= dataLen;
+                dataLen = 0;
+                break;
+            }
+            case mCiscoTlvType_vtpManagementDomain:{
+                char *ID = (char *)malloc(dataLen * sizeof(char) + sizeof(char));
+                bzero(ID, dataLen * sizeof(char) + sizeof(char));
+                memcpy(ID, packetPointer, dataLen);
+                packetPointer += dataLen;
+                remainingPacketLenght -= dataLen;
+                dataLen = 0;
+
+                std::cout << "TLV Type: Platform | ID: " << ID << std::endl;
+
+                free(ID);
+                break;
+            }
+            case mCiscoTlvType_duplex:{
+                std::cout << "TLV Type: Duplex => ";
+                uint8_t duplex;
+                memcpy(&duplex, packetPointer++, 1);
+                remainingPacketLenght--;
+                dataLen--;
+
+                if(0 == duplex){
+                    std::cout << "Half" << std::endl;
+                } else {
+                    std::cout << "Full" << std::endl;
+                }
+                break;
+            }
+            default:{
+                /* unknown TLV? jump over */
+                packetPointer += dataLen;
+                remainingPacketLenght -= dataLen;
+                dataLen = 0;
+                break;
+            }
+        }
+
+
+    }
+    return 0;
+}
+
 void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
     /* get the ethernet frame head */
     struct ether_header *head = (struct ether_header *) packet;
@@ -641,6 +971,10 @@ void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, con
 
     /* WOLOLO! Unit has been converted to the right endian */
     uint16_t ethType = ntohs(head->ether_type);
+
+    uint16_t cdpLen = ethType - 8;
+
+
     /* check if it is ethernet II or IEEE 802.3 */
     /* IEEE 802.3 */
     if(1500 >= ethType){
@@ -655,7 +989,6 @@ void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, con
          * src: http://www.wildpackets.com/resources/compendium/ethernet/frame_snap_iee8023#SSAP */
         memcpy(&cdpType, (packet + 20), 2);
         cdpType = ntohs(cdpType);
-
         if(CDP_CODE == cdpType){
             cdpProtocol = true;
         } else {
@@ -688,11 +1021,12 @@ void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, con
     /* CDP or LLDP dump */
     std::cout   << ((cdpProtocol)?"Payload: CDP protocol":"Payload: LLDP protocol") << std::endl;
 
-    if(lldpProtocol){
+    if(lldpProtocol) {
         /* pass pointer to packet without ethernet header */
         mParseLLDP(packet + ETHER_HEADER_SIZE);
+    } else {
+        mParseCDP(packet + 22, cdpLen);
     }
-
 
     std::cout << "******************************" << std::endl;
 }
