@@ -678,7 +678,7 @@ int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
                 remainingPacketLenght -= dataLen;
                 dataLen = 0;
 
-                std::cout << "TLV Type: Device-ID | ID: " << ID << std::endl;
+                std::cout << "TLV Type: Device-ID : " << ID << std::endl;
 
                 free(ID);
                 break;
@@ -787,7 +787,7 @@ int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
                 remainingPacketLenght -= dataLen;
                 dataLen = 0;
 
-                std::cout << "TLV Type: port-ID | ID: " << ID << std::endl;
+                std::cout << "TLV Type: port-ID : " << ID << std::endl;
 
                 free(ID);
                 break;
@@ -862,7 +862,7 @@ int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
                 remainingPacketLenght -= dataLen;
                 dataLen = 0;
 
-                std::cout << "TLV Type: Software ersion | ID: " << ID << std::endl;
+                std::cout << "TLV Type: Software version : " << ID << std::endl;
 
                 free(ID);
                 break;
@@ -875,7 +875,7 @@ int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
                 remainingPacketLenght -= dataLen;
                 dataLen = 0;
 
-                std::cout << "TLV Type: Platform | ID: " << ID << std::endl;
+                std::cout << "TLV Type: Platform : " << ID << std::endl;
 
                 free(ID);
                 break;
@@ -928,13 +928,13 @@ int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
                 remainingPacketLenght -= dataLen;
                 dataLen = 0;
 
-                std::cout << "TLV Type: VTP Management Domain | ID: " << ID << std::endl;
+                std::cout << "TLV Type: VTP Management Domain : " << ID << std::endl;
 
                 free(ID);
                 break;
             }
             case mCiscoTlvType_duplex:{
-                std::cout << "TLV Type: Duplex => ";
+                std::cout << "TLV Type: Duplex : ";
                 uint8_t duplex;
                 memcpy(&duplex, packetPointer++, 1);
                 remainingPacketLenght--;
