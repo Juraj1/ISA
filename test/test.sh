@@ -17,4 +17,5 @@ fi
 
 FILE=$2
 
-tcpreplay -i ${INTERFACE} -K --mbps 100 ${FILE}
+
+tcpreplay -i ${INTERFACE} --mbps 100 ${FILE}

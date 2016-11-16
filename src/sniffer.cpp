@@ -862,7 +862,7 @@ int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
                 remainingPacketLenght -= dataLen;
                 dataLen = 0;
 
-                std::cout << "TLV Type: Version | ID: " << ID << std::endl;
+                std::cout << "TLV Type: Software ersion | ID: " << ID << std::endl;
 
                 free(ID);
                 break;
