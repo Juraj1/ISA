@@ -1625,7 +1625,6 @@ int sniffer::mArgCheck(int argc, char *argv[]){
 
                         mDuplexFlag.first = true;
                         mDuplexFlag.second = optarg;
-                        std::cout << "Duplex: " << optarg << std::endl;
                         break;
                     }
                     /* --platform */
@@ -1637,7 +1636,6 @@ int sniffer::mArgCheck(int argc, char *argv[]){
 
                         mPlatformFlag.first = true;
                         mPlatformFlag.second = optarg;
-                        std::cout << "Platform: " << optarg << std::endl;
                         break;
                     }
                     /* --software-version */
@@ -1649,7 +1647,6 @@ int sniffer::mArgCheck(int argc, char *argv[]){
 
                         mVersionFlag.first = true;
                         mVersionFlag.second = optarg;
-                        std::cout << "Version: " << optarg << std::endl;
                         break;
                     }
                     /* --device-id */
@@ -1672,7 +1669,6 @@ int sniffer::mArgCheck(int argc, char *argv[]){
 
                         mPortIdFlag.first = true;
                         mPortIdFlag.second = optarg;
-                        std::cout << "Port-ID: " << optarg << std::endl;
                     }
                     /* --capabilities */
                     if(!strcmp(longopts[index].name, "capabilities")){
@@ -1687,7 +1683,6 @@ int sniffer::mArgCheck(int argc, char *argv[]){
 
                         mCapFlag.first = true;
                         mCapFlag.second = atoi(optarg);
-                        std::cout << "Capabilities: " << optarg << std::endl;
                         break;
                     }
                     /* --address */
@@ -1711,19 +1706,6 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                 return E_BADARG;
         }
     }
-
-//    std::cout << "******DEBUG******" << std::endl;
-//    std::cout << "Interface: " << mInterfaceFlag.second << std::endl;
-//    std::cout << "TTL: " << (int)mTtlFlag.second << std::endl;
-//    std::cout << "Duplex:" << mDuplexFlag.second << std::endl;
-//    std::cout << "Platform: " << mPlatformFlag.second << std::endl;
-//    std::cout << "Version: " << mVersionFlag.second << std::endl;
-//    std::cout << "Device-ID: " << mDeviceIdFlag.second << std::endl;
-//    std::cout << "Port-ID: " << mPortIdFlag.second << std::endl;
-//    char str[INET_ADDRSTRLEN];
-//    inet_ntop(AF_INET, &mAddressFlag.second.sin_addr, str, INET_ADDRSTRLEN);
-//    std::cout << "IP: " << str << std::endl;
-//    std::cout << "******DEBUG******" << std::endl;
 
     /* Missing the only required argument, therefore I must quit the app */
     if(!mInterfaceFlag.first){
