@@ -1421,8 +1421,6 @@ int sniffer::mStartSniffing(){
     }
 
     if(mHelloFlag){
-        /* first time of 60sec interval */
-        time(&mTimeOld);
         /* create new sender thread */
         std::thread t1(&sniffer::mSender, this);
         t1.detach();
@@ -1439,6 +1437,8 @@ int sniffer::mStartSniffing(){
 }
 
 void sniffer::mSender(){
+    /* first time of 60sec interval */
+    time(&mTimeOld);
     mSendCDP();
     while(true) {
         time(&mTimeNew);
