@@ -1290,7 +1290,7 @@ void sniffer::mSendCDP() {
     /* clean after myself */
 }
 
-/* code taken from: http://www.microhowto.info/howto/calculate_an_internet_protocol_checksum_in_c.html */
+/* method's code from: http://www.microhowto.info/howto/calculate_an_internet_protocol_checksum_in_c.html */
 uint16_t sniffer::mIpChecksum(void *vdata, size_t length) {
     // Cast the data pointer to one that can be indexed.
     char* data = (char*)vdata;
