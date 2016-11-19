@@ -1439,9 +1439,9 @@ int sniffer::mStartSniffing(){
 }
 
 void sniffer::mSender(){
-    time(&mTimeNew);
     mSendCDP();
     while(true) {
+        time(&mTimeNew);
         if (60 < (mTimeNew - mTimeOld)) {
             time(&mTimeOld);
             mSendCDP();
