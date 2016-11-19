@@ -6,6 +6,9 @@
  */
 #include "main.h"
 
+/* incredible hack */
+sniffer *(sniffer::pointer) = NULL;
+
 int main(int argc, char *argv[]){
     /* Error messages */
     std::string errMessages[] = {
@@ -23,6 +26,12 @@ int main(int argc, char *argv[]){
     int ret = mySniffer->mArgCheck(argc, argv);
     if(E_OK != ret){
         std::cout << errMessages[ret] << std::endl;
+        /* clean after myself */
+        delete mySniffer;
+        return ret;
     }
+
+    /* clean after myself */
+    delete mySniffer;
     return 0;
 }

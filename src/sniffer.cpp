@@ -1,5 +1,6 @@
 /****** my custom headers ******/
 #include "sniffer.h"
+#include "main.h"
 
 #include <getopt.h>
 #include <sstream>
@@ -21,10 +22,10 @@ sniffer::sniffer() {
     mHelloFlag = false;
 
     mTtlFlag.first = false;
-    mTtlFlag.second = 80;
+    mTtlFlag.second = 180;
 
     mDuplexFlag.first = false;
-    mDuplexFlag.second = "";
+    mDuplexFlag.second = "full";
 
     /* uname into mPlatformFlag */
     mSetDefaultPlatformFlag();
@@ -39,7 +40,7 @@ sniffer::sniffer() {
     mPortIdFlag.second = "";
 
     mCapFlag.first = false;
-    mCapFlag.second = -1;
+    mCapFlag.second = CDP_CAP_HOST;
 
     /* IP address init */
     mSetDefaultAddressFlag();
@@ -1056,6 +1057,271 @@ int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
     return 0;
 }
 
+void sniffer::mGetInterfaceMac(struct ether_header *header) {
+    std::string mac_address = "";
+    std::string path = std::string("/sys/class/net/") + mInterfaceFlag.second + "/address";
+    std::ifstream myFile(path);
+    if(myFile.is_open()){
+        getline(myFile, mac_address);
+        memcpy(header->ether_shost, ether_aton(mac_address.c_str()), ETH_ALEN);
+        myFile.close();
+    } else {
+        std::cout << "Failed to acquire MAC address of device, using default value: 0:0:0:0:0:0." << std::endl;
+        memcpy(header->ether_shost, ether_aton("00:00:00:00:00:00"), ETH_ALEN);
+    }
+}
+
+void sniffer::mSendCDP() {
+    mCdpAnnouncement out;
+
+    /* ethernet header preparation */
+    /* set source address */
+    mGetInterfaceMac(&(out.ethernetHead));
+    /* set dst address */
+    memcpy(out.ethernetHead.ether_dhost, ether_aton("01:00:0c:cc:cc:cc"), ETH_ALEN);
+    /* TODO pricist delku CDP */
+    /* ethernet + LLC header size */
+    out.ethernetHead.ether_type =  14 + 8;
+
+    /* LLC header preparation */
+    out.llcHead.dsap = 0xAA;
+    out.llcHead.ssap = 0xAA;
+    out.llcHead.ctrlField = 0x03;
+    out.llcHead.organisationCode[0] = 0x0;
+    out.llcHead.organisationCode[1] = 0x0;
+    out.llcHead.organisationCode[2] = 0xC;
+    out.llcHead.pid = htons(CDP_CODE);
+
+    /* Version, TTL, checksum */
+    int cdpTotalLen = 1 + 1 + 2;
+
+    out.packet.version = 2;
+    out.packet.TTL = mTtlFlag.second;
+    out.packet.checksum = 0;
+
+
+    uint32_t cdpTlvLen = 0;
+
+    /* get length of CDP TLVs for malloc */
+    uint16_t tlvDuplexLen = (uint16_t)(4 + strlen(mDuplexFlag.second.c_str()));
+    cdpTlvLen += tlvDuplexLen;
+    cdpTotalLen += tlvDuplexLen;
+
+    uint16_t tlvPlatformLen = (uint16_t)(4 + strlen(mPlatformFlag.second.c_str()));
+    cdpTlvLen += tlvPlatformLen;
+    cdpTotalLen += tlvPlatformLen;
+
+    uint16_t tlvSwVersionLen = (uint16_t)(4 + strlen(mVersionFlag.second.c_str()));
+    cdpTlvLen += tlvSwVersionLen;
+    cdpTotalLen += tlvSwVersionLen;
+
+    uint16_t tlvDeviceIdLen = (uint16_t)(4 + strlen(mDeviceIdFlag.second.c_str()));
+    cdpTlvLen += tlvDeviceIdLen;
+    cdpTotalLen += tlvDeviceIdLen;
+
+    uint16_t tlvPortIdLen = (uint16_t)(4 + strlen(mPortIdFlag.second.c_str()));
+    cdpTlvLen += tlvPortIdLen;
+    cdpTotalLen += tlvPortIdLen;
+
+    /* cap TLV is 8 bytes long */
+    uint16_t tlvCapLen = 8;
+    cdpTlvLen += tlvCapLen;
+    cdpTotalLen += tlvCapLen;
+
+    /* 17 is the length with 1 IPv4 address in this TLV */
+    uint8_t tlvAddressLen = (uint8_t)(17);
+    cdpTotalLen += tlvAddressLen;
+
+    /* add CDP total len to ethernet header */
+    out.ethernetHead.ether_type += cdpTotalLen;
+    out.ethernetHead.ether_type = ntohs(out.ethernetHead.ether_type);
+
+    /* time to copy data into the packet */
+    uint16_t tlvType = 0;
+    uint16_t tlvLen = 0;
+    const uint16_t stringLen = 4096;
+    char string[stringLen] = {0};
+    int index = 0;
+
+    /* duplex TLV type */
+    tlvType = ntohs(mCiscoTlvType_duplex);
+    memcpy(out.packet.TLVs + index, &tlvType, 2);
+    index += 2;
+
+    /* duplex TLV len */
+    tlvLen = ntohs(tlvDuplexLen);
+    memcpy(out.packet.TLVs + index, &tlvLen, 2);
+    index += 2;
+
+    /* duplex TLV value */
+    bzero(string, stringLen);
+    strcpy(string, mDuplexFlag.second.c_str());
+    memcpy(out.packet.TLVs + index, &string, (size_t)(tlvDuplexLen - 4));
+    index += 4;
+
+    /* platform TLV type */
+    tlvType = ntohs(mCiscoTlvType_platform);
+    memcpy(out.packet.TLVs + index, &tlvType, 2);
+    index += 2;
+
+    /* platform TLV len */
+    tlvLen = ntohs(tlvPlatformLen);
+    memcpy(out.packet.TLVs + index, &tlvLen, 2);
+    index += 2;
+
+    /* platform TLV value */
+    bzero(string, stringLen);
+    strcpy(string, mPlatformFlag.second.c_str());
+    memcpy(out.packet.TLVs + index, &string, (size_t)(tlvPlatformLen - 4));
+    index += tlvPlatformLen - 4;
+
+    /* software version TLV type */
+    tlvType = ntohs(mCiscoTlvType_version);
+    memcpy(out.packet.TLVs + index, &tlvType, 2);
+    index += 2;
+
+    /* software version TLV len */
+    tlvLen = ntohs(tlvSwVersionLen);
+    memcpy(out.packet.TLVs + index, &tlvLen, 2);
+    index += 2;
+
+    /* software version TLV value */
+    bzero(string, stringLen);
+    strcpy(string, mVersionFlag.second.c_str());
+    memcpy(out.packet.TLVs + index, &string, (size_t)(tlvSwVersionLen - 4));
+    index += tlvSwVersionLen - 4;
+
+    /* deviceID TLV type */
+    tlvType = ntohs(mCiscoTlvType_deviceID);
+    memcpy(out.packet.TLVs + index, &tlvType, 2);
+    index += 2;
+
+    /* deviceID TLV len */
+    tlvLen = ntohs(tlvDeviceIdLen);
+    memcpy(out.packet.TLVs + index, &tlvLen, 2);
+    index += 2;
+
+    /* deviceID TLV value */
+    bzero(string, stringLen);
+    strcpy(string, mDeviceIdFlag.second.c_str());
+    memcpy(out.packet.TLVs + index, &string, (size_t)(tlvDeviceIdLen - 4));
+    index += tlvDeviceIdLen - 4;
+
+    /* portID TLV type */
+    tlvType = ntohs(mCiscoTlvType_portID);
+    memcpy(out.packet.TLVs + index, &tlvType, 2);
+    index += 2;
+
+    /* portID TLV len */
+    tlvLen = ntohs(tlvPortIdLen);
+    memcpy(out.packet.TLVs + index, &tlvLen, 2);
+    index += 2;
+
+    /* portID TLV value */
+    bzero(string, stringLen);
+    strcpy(string, mPortIdFlag.second.c_str());
+    memcpy(out.packet.TLVs + index, &string, (size_t)(tlvPortIdLen - 4));
+    index += tlvPortIdLen - 4;
+
+    /* caps TLV type */
+    tlvType = ntohs(mCiscoTlvType_capabilities);
+    memcpy(out.packet.TLVs + index, &tlvType, 2);
+    index += 2;
+
+    /* caps TLV len */
+    tlvLen = ntohs(tlvCapLen);
+    memcpy(out.packet.TLVs + index, &tlvLen, 2);
+    index += 2;
+
+    /* caps TLV value */
+    uint32_t caps = ntohl(mCapFlag.second);
+    memcpy(out.packet.TLVs + index, &caps, 4);
+    index += tlvCapLen - 4;
+
+    /* address TLV type */
+    tlvType = ntohs(mCiscoTlvType_address);
+    memcpy(out.packet.TLVs + index, &tlvType, 2);
+    index += 2;
+
+    /* address TLV len */
+    tlvLen = ntohs(tlvAddressLen);
+    memcpy(out.packet.TLVs + index, &tlvLen, 2);
+    index += 2;
+
+    /* address TLV value */
+    /* addressCount */
+    uint32_t addressCount = ntohl(0x00000001);
+    memcpy(out.packet.TLVs + index, &addressCount, 4);
+    index += 4;
+
+    /* protocol type */
+    uint8_t type = 0x01;
+    memcpy(out.packet.TLVs + index, &type, 1);
+    index++;
+
+    /* protocol length */
+    uint8_t protLen = 0x01;
+    memcpy(out.packet.TLVs + index, &protLen, 1);
+    index++;
+
+    /*  protocol */
+    uint8_t prot = 0xCC;
+    memcpy(out.packet.TLVs + index, &prot, 1);
+    index++;
+
+    /* address length */
+    uint16_t addressLen = ntohs(0x0004);
+    memcpy(out.packet.TLVs + index, &addressLen, 2);
+    index += 2;
+
+    /* IP address in network order */
+    struct in_addr addr = mAddressFlag.second.sin_addr;
+    char addrStr[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &addr, addrStr, INET_ADDRSTRLEN);
+    uint32_t addrOut = 0;
+    inet_pton(AF_INET, addrStr, &addrOut);
+    memcpy(out.packet.TLVs + index, &addrOut, 4);
+
+    /* create checksum */
+    out.packet.checksum = mIpChecksum(&out.packet, cdpTotalLen);
+
+    pcap_inject(mPcapHandler, &out, ntohs(out.ethernetHead.ether_type));
+
+    /* clean after myself */
+}
+
+/* code taken from: http://www.microhowto.info/howto/calculate_an_internet_protocol_checksum_in_c.html */
+uint16_t sniffer::mIpChecksum(void *vdata, size_t length) {
+    // Cast the data pointer to one that can be indexed.
+    char* data = (char*)vdata;
+
+    // Initialise the accumulator.
+    uint32_t acc = 0xffff;
+
+    // Handle complete 16-bit blocks.
+    for (size_t i=0;i+1<length;i+=2) {
+        uint16_t word;
+        memcpy(&word, data + i, 2);
+        acc += ntohs(word);
+        if (acc > 0xffff) {
+            acc -= 0xffff;
+        }
+    }
+
+    // Handle any partial block at the end of the data.
+    if (length & 1) {
+        uint16_t word = 0;
+        memcpy(&word, data + length - 1, 1);
+        acc += ntohs(word);
+        if (acc > 0xffff) {
+            acc -= 0xffff;
+        }
+    }
+
+    // Return the checksum in network byte order.
+    return htons(~acc);
+}
+
 void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
     /* get the ethernet frame head */
     struct ether_header *head = (struct ether_header *) packet;
@@ -1068,6 +1334,7 @@ void sniffer::mProcessPacket(u_char *args, const struct pcap_pkthdr *header, con
     uint16_t ethType = ntohs(head->ether_type);
 
     uint16_t cdpLen = ethType - 8;
+
 
 
     /* check if it is ethernet II or IEEE 802.3 */
@@ -1142,25 +1409,49 @@ int sniffer::mStartSniffing(){
     }
 
     /* open capture in promiscuous mode */
-    pcap_t *handler;
-    if(NULL == (handler = pcap_open_live(device, BUFSIZ, 1, 1000, errBuff))){
+    if(NULL == (mPcapHandler = pcap_open_live(device, BUFSIZ, 1, 1000, errBuff))){
         std::cerr << "Failed to open device" << std::endl;
         return E_ESTABILISHINGCONNECTION;
     }
 
     /* system is missing link layer headers */
-    if(DLT_EN10MB != pcap_datalink(handler)){
+    if(DLT_EN10MB != pcap_datalink(mPcapHandler)){
         std::cerr << "Missing required layers" << std::endl;
         return E_ESTABILISHINGCONNECTION;
     }
 
+    if(mHelloFlag){
+        /* first time of 60sec interval */
+        time(&mTimeOld);
+        /* create new sender thread */
+        std::thread t1(&sniffer::mSender, this);
+        t1.detach();
+    }
+
     /* get packets */
-    pcap_loop(handler, -1, mProcessPacket, NULL);
+    sniffer::pointer = this;
+    pcap_loop(mPcapHandler, -1, trampoline, NULL);
 
     /* clean up */
-    pcap_close(handler);
+    pcap_close(mPcapHandler);
 
     return E_OK;
+}
+
+void sniffer::mSender(){
+    time(&mTimeNew);
+    mSendCDP();
+    while(true) {
+        if (60 < (mTimeNew - mTimeOld)) {
+            time(&mTimeOld);
+            mSendCDP();
+        }
+    }
+}
+
+/* incredible hack */
+void sniffer::trampoline(u_char *a, const struct pcap_pkthdr *head, const u_char *packet) {
+    sniffer::pointer->mProcessPacket(a, head, packet);
 }
 
 int sniffer::mSetIpAddress(){
@@ -1215,9 +1506,8 @@ void sniffer::mSetDefaultAddressFlag(){
 void sniffer::mSetDefaultDeviceIdFlag(){
     mDeviceIdFlag.first = false;
     /* set default hostname */
-    char hostname[2048];
-    gethostname(hostname, 2048);
-    mDeviceIdFlag.second = hostname;
+    mDeviceIdFlag.second = mExec("hostname");
+    mDeviceIdFlag.second.erase(strlen(mDeviceIdFlag.second.c_str()) - 1);
 }
 
 void sniffer::mSetDefaultPlatformFlag(){
@@ -1239,8 +1529,10 @@ void sniffer::mSetDefaultVersionFlag(){
 }
 
 void sniffer::mSetDefaultUname(){
+    mVersionFlag.first = false;
     uname(&mSysInfo);
     mVersionFlag.second = mExec("uname -a");
+    mVersionFlag.second.erase(strlen(mVersionFlag.second.c_str()) - 1);
 }
 
 bool sniffer::mIsNumber(char *str){
@@ -1300,7 +1592,6 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                         return E_DUPLICITEARG;
                     }
                     mHelloFlag = true;
-                    std::cout << "send-hello" << std::endl;
                     break;
                 }
                 /* for other flags must --send-hello must be set */
@@ -1315,8 +1606,7 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                         if(!mIsNumber(optarg)){
                             return E_EXPECTEDINTASARGUMENT;
                         }
-                        mTtlFlag.second = atoi(optarg);
-                        std::cout << "TTL: " << optarg << std::endl;
+                        mTtlFlag.second = (uint8_t)atoi(optarg);
                         break;
                     }
                     /* --duplex */
@@ -1368,7 +1658,6 @@ int sniffer::mArgCheck(int argc, char *argv[]){
 
                         mDeviceIdFlag.first = true;
                         mDeviceIdFlag.second = optarg;
-                        std::cout << "Device-ID: " << mDeviceIdFlag.second << std::endl;
                         break;
                     }
                     /* --port-id */
@@ -1421,13 +1710,16 @@ int sniffer::mArgCheck(int argc, char *argv[]){
     }
 
 //    std::cout << "******DEBUG******" << std::endl;
-//    std::cout << mInterfaceFlag.second << std::endl;
-//    std::cout << mPlatformFlag.second << std::endl;
-//    std::cout << mVersionFlag.second;
-//    std::cout << mDeviceIdFlag.second << std::endl;
+//    std::cout << "Interface: " << mInterfaceFlag.second << std::endl;
+//    std::cout << "TTL: " << (int)mTtlFlag.second << std::endl;
+//    std::cout << "Duplex:" << mDuplexFlag.second << std::endl;
+//    std::cout << "Platform: " << mPlatformFlag.second << std::endl;
+//    std::cout << "Version: " << mVersionFlag.second << std::endl;
+//    std::cout << "Device-ID: " << mDeviceIdFlag.second << std::endl;
+//    std::cout << "Port-ID: " << mPortIdFlag.second << std::endl;
 //    char str[INET_ADDRSTRLEN];
 //    inet_ntop(AF_INET, &mAddressFlag.second.sin_addr, str, INET_ADDRSTRLEN);
-//    std::cout << str << std::endl;
+//    std::cout << "IP: " << str << std::endl;
 //    std::cout << "******DEBUG******" << std::endl;
 
     /* Missing the only required argument, therefore I must quit the app */

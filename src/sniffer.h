@@ -21,6 +21,10 @@
 #include <iomanip>
 #include <string>
 #include <vector>
+#include <ctime>
+#include <cstring>
+#include <fstream>
+#include <thread>
 
 /****** networking headers ******/
 #include <sys/socket.h>     /* Core socket functions */
@@ -80,19 +84,47 @@
 
 /* source for LLDP info: IEEE Std 802.1AB-2009 */
 
+
 class sniffer{
 private:
     /* argument flags */
-    std::pair<bool, std::string>mInterfaceFlag;    /* -i */
-    bool mHelloFlag;                               /* --send-hello */
-    std::pair<bool, int>mTtlFlag;                  /* --ttl */
-    std::pair<bool, std::string>mDuplexFlag;       /* --duplex */
-    std::pair<bool, std::string>mPlatformFlag;     /* --platform */
-    std::pair<bool, std::string>mVersionFlag;      /* --software-version */
-    std::pair<bool, std::string>mDeviceIdFlag;     /* --device-id */
-    std::pair<bool, std::string>mPortIdFlag;       /* --port-id */
-    std::pair<bool, int>mCapFlag;                  /* --capabilities */
-    std::pair<bool, struct sockaddr_in>mAddressFlag;          /* --address */
+    std::pair<bool, std::string>mInterfaceFlag;         /* -i */
+    bool mHelloFlag;                                    /* --send-hello */
+    std::pair<bool, uint8_t>mTtlFlag;                   /* --ttl */
+    std::pair<bool, std::string>mDuplexFlag;            /* --duplex */
+    std::pair<bool, std::string>mPlatformFlag;          /* --platform */
+    std::pair<bool, std::string>mVersionFlag;           /* --software-version */
+    std::pair<bool, std::string>mDeviceIdFlag;          /* --device-id */
+    std::pair<bool, std::string>mPortIdFlag;            /* --port-id */
+    std::pair<bool, uint32_t>mCapFlag;                  /* --capabilities */
+    std::pair<bool, struct sockaddr_in>mAddressFlag;    /* --address */
+
+    time_t mTimeOld;
+    time_t mTimeNew;
+
+    pcap_t *mPcapHandler;
+
+
+    typedef struct{
+        uint8_t version;
+        uint8_t TTL;
+        uint16_t checksum;
+        uint8_t TLVs[1500];
+    } __attribute__ ((packed)) cdpPacket;
+
+    typedef struct{
+        uint8_t dsap;
+        uint8_t ssap;
+        uint8_t ctrlField;
+        uint8_t organisationCode[3]; /* 3 bytes */
+        uint16_t pid;
+    }__attribute__((packed)) mLogicalLinkControl;
+
+    typedef struct{
+        struct ether_header ethernetHead;
+        mLogicalLinkControl llcHead;
+        cdpPacket packet;
+    }__attribute__((packed)) mCdpAnnouncement;
 
     /* uname struct */
     struct utsname mSysInfo;
@@ -196,22 +228,43 @@ private:
     std::string mExec(const char*);
 
     /**
-     * @brief Callback method for pcap_loop.
+     *
      */
-    static void mProcessPacket(u_char *, const struct pcap_pkthdr *, const u_char *);
+    int mParseLLDP(const u_char *);
 
     /**
      *
      */
-    static int mParseLLDP(const u_char *);
+    int mParseCDP(const u_char *, const uint16_t);
 
     /**
      *
      */
-    static int mParseCDP(const u_char *, const uint16_t);
+    void mSendCDP();
+
+    /**
+    * @brief Callback method for pcap_loop.
+    */
+    void mProcessPacket(u_char *, const struct pcap_pkthdr *, const u_char *);
+
+    /**
+     *
+     */
+    void mGetInterfaceMac(struct ether_header *header);
+
+    /**
+     *
+     */
+    uint16_t mIpChecksum(void *vdata, size_t length);
+
+    /**
+     *
+     */
+    void mSender();
 public:
     /****** VARIABLES ******/
 
+    static sniffer *pointer;
 
     /****** METHODS ******/
     /**
@@ -225,6 +278,11 @@ public:
      * @param argv Vector of arguments for main program.
      */
     int mArgCheck(int, char **);
+
+
+
+
+    static void trampoline(u_char *a, const struct pcap_pkthdr *head, const u_char *packet);
 };
 
 #endif /* __SNIFFER_H__ */
