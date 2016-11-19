@@ -1444,7 +1444,7 @@ void sniffer::mSender(){
     mSendCDP();
     while(true) {
         time(&mTimeNew);
-        usleep(20000);
+        sleep(30);
         if (60 < (mTimeNew - mTimeOld)) {
             time(&mTimeOld);
             mSendCDP();
