@@ -1081,7 +1081,7 @@ void sniffer::mSendCDP() {
     memcpy(out.ethernetHead.ether_dhost, ether_aton("01:00:0c:cc:cc:cc"), ETH_ALEN);
     /* TODO pricist delku CDP */
     /* ethernet + LLC header size */
-    out.ethernetHead.ether_type =  14 + 8;
+    out.ethernetHead.ether_type = 0;
 
     /* LLC header preparation */
     out.llcHead.dsap = 0xAA;
@@ -1133,7 +1133,7 @@ void sniffer::mSendCDP() {
     cdpTotalLen += tlvAddressLen;
 
     /* add CDP total len to ethernet header */
-    out.ethernetHead.ether_type += cdpTotalLen;
+    out.ethernetHead.ether_type += cdpTotalLen + 8;
     out.ethernetHead.ether_type = ntohs(out.ethernetHead.ether_type);
 
     /* time to copy data into the packet */
@@ -1285,7 +1285,9 @@ void sniffer::mSendCDP() {
     /* create checksum */
     out.packet.checksum = mIpChecksum(&out.packet, cdpTotalLen);
 
-    pcap_inject(mPcapHandler, &out, ntohs(out.ethernetHead.ether_type));
+    uint16_t payload = ntohs(out.ethernetHead.ether_type);
+    payload += ETHER_HEADER_SIZE;
+    pcap_inject(mPcapHandler, &out, payload);
 
     /* clean after myself */
 }
