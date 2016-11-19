@@ -657,7 +657,7 @@ int sniffer::mParseCDP(const u_char *packet, const uint16_t packetLength){
     while(0 < remainingPacketLenght){
         /* get TLV type and move */
         uint16_t type;
-        memcpy(&type, packetPointer, 2);
+        memcpy(&type, packetPointer, sizeof(uint16_t));
         type = ntohs(type);
         packetPointer += 2;
         remainingPacketLenght -= 2;
@@ -1093,7 +1093,7 @@ void sniffer::mSendCDP() {
     out.llcHead.pid = htons(CDP_CODE);
 
     /* Version, TTL, checksum */
-    int cdpTotalLen = 1 + 1 + 2;
+    uint32_t cdpTotalLen = 1 + 1 + 2;
 
     out.packet.version = 2;
     out.packet.TTL = mTtlFlag.second;
@@ -1141,7 +1141,7 @@ void sniffer::mSendCDP() {
     uint16_t tlvLen = 0;
     const uint16_t stringLen = 4096;
     char string[stringLen] = {0};
-    int index = 0;
+    uint32_t index = 0;
 
     /* duplex TLV type */
     tlvType = ntohs(mCiscoTlvType_duplex);
@@ -1442,6 +1442,7 @@ void sniffer::mSender(){
     mSendCDP();
     while(true) {
         time(&mTimeNew);
+        usleep(20000);
         if (60 < (mTimeNew - mTimeOld)) {
             time(&mTimeOld);
             mSendCDP();

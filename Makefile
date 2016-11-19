@@ -1,6 +1,6 @@
 BINARY=myL2monitor
 CC=g++
-CFLAGS=-std=c++11 -Wall -pedantic -ggdb
+CFLAGS=-std=c++11 -Wall -O2 -pedantic -ggdb
 OBJFILES=	sniffer.o\
 					main.o
 LINKWITH=-lpcap -lpthread
@@ -23,3 +23,6 @@ clean:
 
 purge:clean
 	rm -rf ${BINARY}
+
+pack: purge
+	tar -cvf xzahra22.tar src objfiles doc Makefile
