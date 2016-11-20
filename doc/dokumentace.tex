@@ -126,7 +126,7 @@ unicode]{hyperref}
 			\end{itemize}
 			
 			\subsubsection{Struktura LLDP}
-				LLDP vypadá podobně jako CDP, avšak v některých věcech se liší. Stejně jako CDP se skládá z datových struktur typu TLV. Povinná TLV jsou: \texttt{Chassis ID}, \texttt{Port ID}, \texttt{Time To Live} a \texttt{End of LLDPDU}, přičemž \texttt{End of LLDPDU} jsou dva oktety plné nul. Formát TLV lze vidět na obrázku \ref{lldp:tlvFormat}. Zde je jeden z rozdílů ve srovnání s CDP. Pole \texttt{Length} obsahuje hodnotu reprezentující počet oktetů pole \texttt{Value}. Implementace se sice zde mírně zjednodušší, ale kvůli faktu, že pole \texttt{Type} a \texttt{Length} nejsou zarovnaná, jak můžeme vidět na obrázku \ref{pic:lldpTlvStructure}, je třeba použít bitových posunů nebo bitových polí.
+				LLDP vypadá podobně jako CDP, avšak v některých věcech se liší. Stejně jako CDP se skládá z datových struktur typu TLV. Povinná TLV jsou: \texttt{Chassis ID}, \texttt{Port ID}, \texttt{Time To Live} a \texttt{End of LLDPDU}, přičemž \texttt{End of LLDPDU} jsou dva oktety plné nul. Formát TLV lze vidět na obrázku \ref{lldp:lldpTlvStructure}. Zde je jeden z rozdílů ve srovnání s CDP. Pole \texttt{Length} obsahuje hodnotu reprezentující počet oktetů pole \texttt{Value}. Implementace se sice zde mírně zjednodušší, ale kvůli faktu, že pole \texttt{Type} a \texttt{Length} nejsou zarovnaná, jak můžeme vidět na obrázku \ref{pic:lldpTlvStructure}, je třeba použít bitových posunů nebo bitových polí.
 				
 				\begin{figure}[h]	
 					\begin{center}
@@ -146,7 +146,34 @@ unicode]{hyperref}
 			
 	\section{Aplikace}
 	\subsection{Návrh}
-		Aplikace je navrhnuta jako vícevláknová, kde hlavní vlákno pomocí knihovny \texttt{pcap} zachytává
+		Aplikace je navrhnuta objektově jako vícevláknová, kde hlavní vlákno pomocí knihovny \texttt{libpcap} zachytává packety a posílá je dále na zpracování a vedlejší vlákno odesílá v pravidelných intervalech CDP oznámení.
+	
+	\subsection{Implementace}
+		Aplikace je implementována v jazyce C/C++. Nejprve dokde k vytvoření objektu typu \texttt{sniffer}, který zpracuje argumenty z příkazové řádky. Jelikož ale kontrola parametrů nebyla součástí zadání, je pouze omezená. Po zpracování objekt přechází ke spouštění naslouchání. Během inicializace naslouchání, po otevření přístupu ke komunikačnímu rozhraní je zkontrolován přiznak přikazující odesílání CDP oznámení. Pokud je příznak nastaven, aplikace startuje druhé vlákno, které v pravidelných intervalech o délce 60 sekund odesílá CDP oznámení. Původní vlákno pokračuje voláním funkce \texttt{pcap\_loop()}. Zde bych chtěl upozornit na konflikt mezi C++ a knihovnou \texttt{libpcap} implementovanou v C. Funkce \texttt{pcap\_loop()} jako jeden z argumentů očekává ukazatel na statickou funkci. Aby se programátor vyhnul nutnosti použití třídních proměnných a metod, byla vytvořena tzv. trampolínová třídní metoda, která volá objektovou metodu. Programátor uznává, že z paradigmatického hlediska to není zrovna čisté, ale je to nejjednodušší řešení vedoucí k úspěchu a vyhne se nutnosti pracovat se statickými proměnnými.\par
+		
+		Následující zpracování se provádí čtením packetů. Zde je potřeba dávat pozor, jelikož procesory architektury x86 a AMD64 používají opačnou endianitu, než síťová data. Proto je třeba pro konverzi více bytových dat použít funkce \texttt{ntohl()} pro 32 bitová data a \texttt{ntohs} pro 16 bitová data. Pro TLV hlavičky LLDP bylo využito bitových posunů pro získání správných hodnot.
+		\par
+		Následuje parsování dat z jednotlivých TLV. Na packet v paměti ukazuje ukazatel, a ten se v průběhu parsování posouvá v závislosti na délce přečtené hodnoty. Vyparsovaná data jsou postupně uživateli vypisována na standardní výstup. Aplikace bude ukončena pomocí signálu SIGINT.
+		
+	\subsection{Spouštění aplikace}
+		Aplikace je spouštěna následovně:\par
+		"\texttt{./myL2monitor -i <rozhraní> \{--send-hello \{--ttl <sekundy>\}\{--duplex [full|half]\} \{--software-version <verze>\} \{--device-id <identifikátor>\} \{--platform <platforma>\} \{--port-id <rozhraní>\} \{--capabilities <integer>\} \{--address <IPv4>\}\}}" \cite{wis:zadani}\par
+		
+		Význam argumentů: 
+		\begin{itemize}
+			\item \texttt{-i <rozhraní>} - povinný parametr specifikující rozhraní, na kterém aplikace naslouchá
+			\item \texttt{--send-hello} - zapíná odesílání CDP oznámení
+			\item \texttt{--ttl <sekundy>} - time to live TLV, pokud není nastaven, použije se výchozí hodnota 180s
+			\item \texttt{--duplex [full|half]} - nabývá dvou řetězcových hodnot, pokud není nastaven, použije se výchozí hodnota "full"
+			\item \texttt{--platform <platforma>} - řetězcová hodnota, pokud není nastaven, použije se výchozí hodnota odpovídající příkazu \$ uname
+			\item \texttt{--software-version <verze>} - řetězcová hodnota, pokud není nastaven, použije se výchozí hodnota odpovídající příkazu \$ uname -a
+			\item \texttt{--device-id <identifikátor>} - řetězcová hodnota, pokud není nastaven, použije se výchozí hodnota odpovídající příkazu \$ hostname
+			\item \texttt{--port-id <rozhraní>} - řetězcová hodnota, pokud není nastaven, použije se výchozí hodnota, která odpovídá hodnotě argumentu \texttt{-i <rozhraní>}
+			\item \texttt{--capabilities <integer>} - celé číslo reprezentující nastavené schopnoti zařízení, pokud není nastaven, použije se výchozí hodnota odpovídající hodnotě "Host"
+			\item \texttt{--address <IPv4>} - IPv4 adresa ve formě řetězce, pokud není nastaven, použije se adresa zařízení specifikovaného v argumentu \texttt{-i <rozhraní>}  
+		\end{itemize}
+		
+		Argumenty uzavřeny do složených závorek jsou nepovinné. Pro odeslání CDP oznámení musí být přítomen argument \texttt{--send-hello}. Pokud uživatel zadá dalši argumenty, aplikace ho klepne přez prsty.
 			
 	\pagebreak	
 	\listoffigures
