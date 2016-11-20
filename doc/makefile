@@ -4,6 +4,7 @@ do:$(FILE).tex
 	pdflatex $(FILE).tex
 	bibtex $(FILE).aux
 	pdflatex $(FILE).tex
+	pdflatex $(FILE).tex
 	mv ${FILE}.pdf manual.pdf
 
 clean:
