@@ -23,6 +23,7 @@ clean:
 
 purge:clean
 	rm -rf ${BINARY}
+	rm -rf xzahra22.tar
 
 pack: purge
 	tar -cvf xzahra22.tar src objfiles/README doc/manual.pdf Makefile README

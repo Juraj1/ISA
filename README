@@ -2,6 +2,7 @@ Monitorovaci nastroj LLDP a CDP.
 
 seznam souboru:
   Makefile
+  README
   doc/manual.pdf
   objfiles/README
   src/main.h
