@@ -1608,6 +1608,10 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                             std::cerr << "Invalid capabilities argument" << std::endl;
                             return E_EXPECTEDINTASARGUMENT;
                         }
+                        catch(std::out_of_range){
+                            std::cerr << "Invalid capabilities argument" << std::endl;
+                            return E_BADARG;
+                        }
                         break;
                     }
                     /* --duplex */
@@ -1682,6 +1686,10 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                         catch(std::invalid_argument){
                             std::cerr << "Invalid capabilities argument" << std::endl;
                             return E_EXPECTEDINTASARGUMENT;
+                        }
+                        catch(std::out_of_range){
+                            std::cerr << "Invalid capabilities argument" << std::endl;
+                            return E_BADARG;
                         }
                         mCapFlag.first = true;
                         break;
