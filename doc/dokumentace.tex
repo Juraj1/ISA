@@ -34,8 +34,8 @@ unicode]{hyperref}
 				
 				\vspace{\stretch{0.382}}
 				
-				\Large Síťové aplikace a správa sítí\\
-				\Huge 	Jednoduchý monitorovací nástroj protokolů CDP a LLDP
+				\Large Síťové aplikace a~práva sítí\\
+				\Huge 	Jednoduchý monitorovací nástroj protokolů CDP a~LLDP
 				
 				\vspace{\stretch{0.618}}
 			\end{center}
@@ -52,28 +52,28 @@ unicode]{hyperref}
 	
 	\section{Úvod}
 		Tento monitorovací nástroj sleduje packety dvou protokolů. Konkrétně proprietárního
-		Cisco Discovery Protocol(CDP)  a průmyslového standardu umožňujícím komunikaci mezi zařízeními napříč výrobci, Link Layer Discovery Protocol(LLDP).
+		Cisco Discovery Protocol(CDP) a~průmyslového standardu umožňujícím komunikaci mezi zařízeními napříč výrobci, Link Layer Discovery Protocol(LLDP).
 		
 	\section{Zapouzdření do ethernetového rámce}
-		Tyto discovery protokoly využívají dvou ethernetových rámců. LLDP využívá rámec Ethernet II, narozdíl od CDP, který využívá Ethernet 802.3 s LLC/SNAP \cite{wireshark:ethernet}.
-		Tyto dva rámce jsou si až na pár bytů podobné. A to, že Ethernet II, narozdíl od Ethernetu 802.3, má na 13. a 14. bytu typ dat obsažených v payloadu. Ethernet 802.3 má na 13. a 14. bytu délku dat obsažených v payloadu.
+		Tyto discovery protokoly využívají dvou ethernetových rámců. LLDP využívá rámec Ethernet II, narozdíl od CDP, který využívá Ethernet 802.3 s~LLC/SNAP \cite{wireshark:ethernet}.
+		Tyto dva rámce jsou si až na pár bytů podobné. A to, že Ethernet II, narozdíl od~Ethernetu 802.3, má na 13. a~14. bytu typ dat obsažených v~payloadu. Ethernet 802.3 má na 13. a~14. bytu délku dat obsažených v~payloadu.
 		
 		\begin{figure}[h]	
 			\begin{center}
 				\scalebox{0.35}{\includegraphics{etherVsEther.jpg}}
-				\caption{Rozdíl mezi rámci Ethernet II a Ethernet 802.3}
+				\caption{Rozdíl mezi rámci Ethernet II a~Ethernet 802.3}
 				\label{pic:etherVsEther}
 			\end{center}
 		\end{figure}
 		
-		Rozlišení mezi těmito rámci není komplikované. Ethernetový rámec nesmí mít více než 1500 bytů dat. Z toho vyplývá, že pokud je v poli type/length hodnota menší nebo rovno 1500, pak je to rámec 802.3. V opačném případě je to rámec Ethernet II \cite{wireshark:ethernet}. 
+		Rozlišení mezi těmito rámci není komplikované. Ethernetový rámec nesmí mít více než 1500 bytů dat. Z~toho vyplývá, že~pokud je v~poli type/length hodnota menší nebo rovno 1500, pak je to rámec 802.3. V~opačném případě je to rámec Ethernet II \cite{wireshark:ethernet}. 
 	
 	\section{Protokoly}	
 		\subsection{Cisco Discovery Protocol}\label{cdp}
-			Cisco Discovery Protocol je proprietární protokol vyskytující se na linkové vrstvě \cite{wiki:cdp} ISO/OSI modelu \cite{wiki:iso/osi}. Cisco zařízené posílají CDP oznámení na muticastovou adresu \texttt{01:00:0c:cc:cc:cc} z každého připojeného rozhraní. V základu, stejně jako v této aplikaci, jsou oznámení odesílaná každých 60 sekund skrz rozhraní podporující Subnetwork Access Protocol(SNAP). Každé Cisco zařízení si udržje tabulku, do které si ukládá informace o svých sousedech obsaženy právě v CDP oznámeních. U každého záznamu je hodnota \texttt{Time To Live}, která určuje, po jakou dobu má být záznam udržován v tabulce.
+			Cisco Discovery Protocol je proprietární protokol vyskytující se na linkové vrstvě \cite{wiki:cdp} ISO/OSI modelu \cite{wiki:iso/osi}. Cisco zařízené posílají CDP oznámení na muticastovou adresu \texttt{01:00:0c:cc:cc:cc} z~každého připojeného rozhraní. V základu, stejně jako v~této aplikaci, jsou oznámení odesílaná každých 60 sekund skrze rozhraní podporující Subnetwork Access Protocol(SNAP). Každé Cisco zařízení si~udržje tabulku, do~které si ukládá informace o~svých sousedech obsaženy právě v CDP oznámeních. U~každého záznamu je hodnota \texttt{Time To Live}, která určuje, po jakou dobu má být záznam udržován v~tabulce.
 			
 			\subsubsection{Struktura CDP}
-				CDP je, krom pevně daných bytů hlavičky, tvořen datovými strukturami \texttt{TLV (Time Length Value)}~\cite{technion:cdp} jak je možno vidět na v tabulce~\ref{cdp:frameFormat}.
+				CDP je, krom~pevně daných bytů hlavičky, tvořen datovými strukturami \texttt{TLV (Time Length Value)}~\cite{technion:cdp} jak je možno vidět na v~tabulce~\ref{cdp:frameFormat}.
 				
 		
 				\begin{table}[h]
@@ -91,7 +91,7 @@ unicode]{hyperref}
 					\end{center}
 				\end{table}
 				
-				Jak můžeme vidět, tak hlavička má 32 bitů, přičemž prvních 8 označuje verzi protokolu, následuje 8 bitů pro \texttt{Time To Live} a poté pokračuje standardní IP kontrolní součet pro kontrolu validity packetu. \texttt{Type} označuje typ hodnoty, která je zapsána v hodnotě \texttt{Value}. \texttt{Length} určuje délku celého TLV pole, takže délka hodnoty \texttt{Value} je o dva byty kratší. Na toto je třeba dávat pozor při implementaci.
+				Jak můžeme vidět, tak hlavička má 32 bitů, přičemž prvních 8 označuje verzi protokolu, následuje 8 bitů pro \texttt{Time To Live} a~poté pokračuje standardní IP kontrolní součet pro kontrolu validity packetu. \texttt{Type} označuje typ hodnoty, která~je zapsána v hodnotě \texttt{Value}. \texttt{Length} určuje délku celého TLV pole, takže délka hodnoty \texttt{Value} je o~32 bitů kratší. Na toto je třeba dávat pozor při implementaci.
 				
 				\begin{table}[h]
 					\begin{center}
@@ -108,16 +108,16 @@ unicode]{hyperref}
 					\end{center}
 				\end{table}
 				
-				Hodnoty, které můžou TLV pole nabývat, \href{http://www.cs.technion.ac.il/Courses/Computer-Networks-Lab/projects/spring2003/cdp2/web\_cdp2/web\_cdp2/cdp2\_report.htm}{je možno vidět zde}.
+				Hodnoty, které~můžou TLV pole nabývat, \href{http://www.cs.technion.ac.il/Courses/Computer-Networks-Lab/projects/spring2003/cdp2/web\_cdp2/web\_cdp2/cdp2\_report.htm}{je možno vidět zde}.
 				
 				
 				
 		\subsection{Link-Layer Discovery Protocol}\label{lldp}
-			Link-Layer Discovery Protocol je protokol druhé síťové vrstvy využívaný ke stejným účelům jako CDP. Narozdíl od CDP je ale nezávislý na výrobci a detailně je popsán ve standardu 802.1AB \cite{802.1AB}. Identifikace protokolu v ethernetovém rámci je jednoduchá, jednat hodnota typu je 0x88CC a také cílová MAC adresa ethernetového rámce patří do skupiny multicastových adres, které síťové prvky splňující standard 802.1D neposílají dále. Pomocí tohoto protokolu můžeme zjistit následující informace \cite{wiki:lldp}:
+			Link-Layer Discovery Protocol je protokol druhé síťové vrstvy využívaný ke stejným účelům jako CDP. Narozdíl od CDP je ale nezávislý na výrobci a~detailně je popsán ve standardu 802.1AB \cite{802.1AB}. Identifikace protokolu v~ethernetovém rámci je jednoduchá, jednat hodnota typu je 0x88CC a~také cílová MAC adresa ethernetového rámce patří do skupiny multicastových adres, které síťové prvky splňující standard 802.1D neposílají dále. Pomocí tohoto protokolu můžeme zjistit následující informace \cite{wiki:lldp}:
 			
 			\begin{itemize}
-				\item Jméno a popis systému
-				\item Jméno a popis portu
+				\item Jméno a~popis systému
+				\item Jméno a~popis portu
 				\item Jméno VLAN
 				\item Schopnosti systému
 				\item Fyzickou adresu
@@ -126,7 +126,7 @@ unicode]{hyperref}
 			\end{itemize}
 			
 			\subsubsection{Struktura LLDP}
-				LLDP vypadá podobně jako CDP, avšak v některých věcech se liší. Stejně jako CDP se skládá z datových struktur typu TLV. Povinná TLV jsou: \texttt{Chassis ID}, \texttt{Port ID}, \texttt{Time To Live} a \texttt{End of LLDPDU}, přičemž \texttt{End of LLDPDU} jsou dva oktety plné nul. Formát TLV lze vidět na obrázku \ref{lldp:lldpTlvStructure}. Zde je jeden z rozdílů ve srovnání s CDP. Pole \texttt{Length} obsahuje hodnotu reprezentující počet oktetů pole \texttt{Value}. Implementace se sice zde mírně zjednodušší, ale kvůli faktu, že pole \texttt{Type} a \texttt{Length} nejsou zarovnaná, jak můžeme vidět na obrázku \ref{pic:lldpTlvStructure}, je třeba použít bitových posunů nebo bitových polí.
+				LLDP vypadá podobně jako CDP, avšak v~některých věcech se liší. Stejně jako CDP se skládá z~datových struktur typu TLV. Povinná TLV jsou: \texttt{Chassis ID}, \texttt{Port ID}, \texttt{Time To Live} a~\texttt{End of LLDPDU}, přičemž \texttt{End of LLDPDU} jsou dva oktety plné nul. Formát TLV lze vidět na obrázku \ref{pic:lldpTlvStructure}. Zde je jeden z rozdílů ve srovnání s CDP. Pole \texttt{Length} obsahuje hodnotu reprezentující počet oktetů pole \texttt{Value}. Implementace se sice zde mírně zjednodušší, ale kvůli faktu, že pole \texttt{Type} a~\texttt{Length} nejsou zarovnaná, jak můžeme vidět na obrázku \ref{pic:lldpTlvStructure}, je třeba použít bitových posunů nebo bitových polí.
 				
 				\begin{figure}[h]	
 					\begin{center}
@@ -144,14 +144,16 @@ unicode]{hyperref}
 					\end{center}
 				\end{figure}
 			
+			\pagebreak
+			
 	\section{Aplikace}
 	\subsection{Návrh}
-		Aplikace je navrhnuta objektově jako vícevláknová, kde hlavní vlákno pomocí knihovny \texttt{libpcap} zachytává packety a posílá je dále na zpracování a vedlejší vlákno odesílá v pravidelných intervalech CDP oznámení.
+		Aplikace je navrhnuta objektově jako vícevláknová, kde~hlavní vlákno pomocí knihovny \texttt{libpcap} zachytává packety a~posílá je dále na zpracování a~vedlejší vlákno odesílá v pravidelných intervalech CDP oznámení.
 	
 	\subsection{Implementace}
-		Aplikace je implementována v jazyce C/C++. Nejprve dokde k vytvoření objektu typu \texttt{sniffer}, který zpracuje argumenty z příkazové řádky. Jelikož ale kontrola parametrů nebyla součástí zadání, je pouze omezená. Po zpracování objekt přechází ke spouštění naslouchání. Během inicializace naslouchání, po otevření přístupu ke komunikačnímu rozhraní je zkontrolován přiznak přikazující odesílání CDP oznámení. Pokud je příznak nastaven, aplikace startuje druhé vlákno, které v pravidelných intervalech o délce 60 sekund odesílá CDP oznámení. Původní vlákno pokračuje voláním funkce \texttt{pcap\_loop()}. Zde bych chtěl upozornit na konflikt mezi C++ a knihovnou \texttt{libpcap} implementovanou v C. Funkce \texttt{pcap\_loop()} jako jeden z argumentů očekává ukazatel na statickou funkci. Aby se programátor vyhnul nutnosti použití třídních proměnných a metod, byla vytvořena tzv. trampolínová třídní metoda, která volá objektovou metodu. Programátor uznává, že z paradigmatického hlediska to není zrovna čisté, ale je to nejjednodušší řešení vedoucí k úspěchu a vyhne se nutnosti pracovat se statickými proměnnými.\par
+		Aplikace je implementována v~jazyce C/C++. Nejprve dojde k~vytvoření objektu typu \texttt{sniffer}, který zpracuje argumenty z~příkazové řádky. Jelikož ale~kontrola parametrů nebyla součástí zadání, je pouze omezená. Po zpracování objekt přechází ke spouštění naslouchání. Během inicializace naslouchání, po otevření přístupu ke komunikačnímu rozhraní je zkontrolován přiznak přikazující odesílání CDP oznámení. Pokud je příznak nastaven, aplikace startuje druhé vlákno, které v pravidelných intervalech o délce 60 sekund odesílá CDP oznámení. Původní vlákno pokračuje voláním funkce \texttt{pcap\_loop()}. Zde bych chtěl upozornit na konflikt mezi C++ a~knihovnou \texttt{libpcap} implementovanou v~C. Funkce \texttt{pcap\_loop()} jako jeden z~argumentů očekává ukazatel na statickou funkci. Aby se programátor vyhnul nutnosti použití třídních proměnných a~metod, byla vytvořena tzv.~trampolínová třídní metoda, která~volá objektovou metodu. Programátor uznává, že z~paradigmatického hlediska to není zrovna čisté, ale~je to nejjednodušší řešení vedoucí k~úspěchu a~vyhne se nutnosti pracovat se statickými proměnnými.\par
 		
-		Následující zpracování se provádí čtením packetů. Zde je potřeba dávat pozor, jelikož procesory architektury x86 a AMD64 používají opačnou endianitu, než síťová data. Proto je třeba pro konverzi více bytových dat použít funkce \texttt{ntohl()} pro 32 bitová data a \texttt{ntohs} pro 16 bitová data. Pro TLV hlavičky LLDP bylo využito bitových posunů pro získání správných hodnot.
+		Následující zpracování se provádí čtením packetů. Zde je potřeba dávat pozor, jelikož procesory architektury x86 a AMD64 používají opačnou endianitu, než síťová data. Proto je třeba pro konverzi více bytových dat použít funkce \texttt{ntohl()} pro 32 bitová data a~\texttt{ntohs} pro 16 bitová data. Pro TLV hlavičky LLDP bylo využito bitových posunů pro získání správných hodnot.
 		\par
 		Následuje parsování dat z jednotlivých TLV. Na packet v paměti ukazuje ukazatel, a ten se v průběhu parsování posouvá v závislosti na délce přečtené hodnoty. Vyparsovaná data jsou postupně uživateli vypisována na standardní výstup. Aplikace bude ukončena pomocí signálu SIGINT.
 		
@@ -159,9 +161,9 @@ unicode]{hyperref}
 		Aplikace je spouštěna následovně:\par
 		"\texttt{./myL2monitor -i <rozhraní> \{--send-hello \{--ttl <sekundy>\}\{--duplex [full|half]\} \{--software-version <verze>\} \{--device-id <identifikátor>\} \{--platform <platforma>\} \{--port-id <rozhraní>\} \{--capabilities <integer>\} \{--address <IPv4>\}\}}" \cite{wis:zadani}\par
 		
-		Význam argumentů: 
+		Význam argumentů \cite{wis:zadani}: 
 		\begin{itemize}
-			\item \texttt{-i <rozhraní>} - povinný parametr specifikující rozhraní, na kterém aplikace naslouchá
+			\item \texttt{-i <rozhraní>} - povinný parametr specifikující rozhraní, na~kterém~aplikace naslouchá
 			\item \texttt{--send-hello} - zapíná odesílání CDP oznámení
 			\item \texttt{--ttl <sekundy>} - time to live TLV, pokud není nastaven, použije se výchozí hodnota 180s
 			\item \texttt{--duplex [full|half]} - nabývá dvou řetězcových hodnot, pokud není nastaven, použije se výchozí hodnota "full"
