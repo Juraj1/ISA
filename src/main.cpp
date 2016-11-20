@@ -18,7 +18,7 @@ int main(int argc, char *argv[]){
             "Expected integer as an argument",
             "Missing required argument",
             "Unable to estabilish connection",
-            "Unknown error"
+            "Failed to connect to the interface"
     };
 
     /* New object on the heap */

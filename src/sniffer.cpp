@@ -1444,7 +1444,7 @@ void sniffer::mSender(){
     mSendCDP();
     while(true) {
         time(&mTimeNew);
-        sleep(30);
+        sleep(1);
         if (60 < (mTimeNew - mTimeOld)) {
             time(&mTimeOld);
             mSendCDP();
@@ -1480,7 +1480,7 @@ int sniffer::mSetIpAddress(){
         mAddressFlag.second.sin_addr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
     } else {
         shutdown(s, 2);
-        return E_UNKNOWN;
+        return E_CONNECT_ERROR;
     }
 
     /* I successfuly set the IP address */
@@ -1582,8 +1582,8 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                 mPortIdFlag.second = optarg;
 
                 /* set default IP address for said interface */
-                if(E_UNKNOWN == mSetIpAddress()){
-                    return E_UNKNOWN;
+                if(E_CONNECT_ERROR == mSetIpAddress()){
+                    return E_CONNECT_ERROR;
                 }
 
                 break;

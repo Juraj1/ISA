@@ -1,0 +1,28 @@
+Monitorovaci nastroj LLDP a CDP. 
+
+seznam souboru:
+  Makefile
+  doc/manual.pdf
+  objfiles/README
+  src/main.h
+  src/main.cpp
+  src/sniffer.h
+  src/sniffer.h
+  src/error.h
+   
+poznamka: 
+  pro preklad prosim zachovejte strukturu projektu
+    - zdrojove soubory ve slozce src
+    - musi existovat slozka objfiles, zde se po prekladu ulozi objfiles
+    - pote se slinkuje binarka, ktera se ulozi do korenoveho
+      adresare projektu
+
+funkcionalita:
+  v programu je implementovan pouze 2. bod zadani -
+    Naprogramovat aplikaci, která je schopná na zadaném rozhraní 
+    monitorovat zprávy výše uvedených protokolů, 
+    a navíc odesílat pravidelně konfigurovatelné CDP oznámení.
+
+priklady spusteni:
+  ./myL2monitor -i enp2s0 --send-hello --ttl 80
+  ./myL2monitor -i enp2s0 --send-hello --ttl 80 --device-id ISA-Virtualka
