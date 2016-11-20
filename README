@@ -23,6 +23,8 @@ funkcionalita:
     monitorovat zprávy výše uvedených protokolů, 
     a navíc odesílat pravidelně konfigurovatelné CDP oznámení.
 
+  kontrola parametru prikazove radky nebyla zadana v zadani, takze je jen minimalni
+
 priklady spusteni:
   ./myL2monitor -i enp2s0 --send-hello --ttl 80
   ./myL2monitor -i enp2s0 --send-hello --ttl 80 --device-id ISA-Virtualka
