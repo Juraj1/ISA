@@ -1538,16 +1538,6 @@ void sniffer::mSetDefaultUname(){
     mVersionFlag.second.erase(strlen(mVersionFlag.second.c_str()) - 1);
 }
 
-bool sniffer::mIsNumber(char *str){
-    char len = strlen(str);
-    for(int i = 0; i < len; i++){
-        if(!isdigit(str[i])){
-            return false;
-        }
-    }
-    return true;
-}
-
 int sniffer::mArgCheck(int argc, char *argv[]){
     /* enum describing codes for argument types */
     const struct option longopts[] = {
@@ -1606,10 +1596,18 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                             return E_DUPLICITEARG;
                         }
                         mTtlFlag.first = true;
-                        if(!mIsNumber(optarg)){
+                        std::string str = optarg;
+                        try {
+                            mTtlFlag.second = std::stoi(str, nullptr, 0);
+                            if(0xFF < mTtlFlag.second){
+                                std::cerr << "Time to live integer too big" << std::endl;
+                                return E_BADARG;
+                            }
+                        }
+                        catch(std::invalid_argument){
+                            std::cerr << "Invalid capabilities argument" << std::endl;
                             return E_EXPECTEDINTASARGUMENT;
                         }
-                        mTtlFlag.second = (uint8_t)atoi(optarg);
                         break;
                     }
                     /* --duplex */
@@ -1676,13 +1674,16 @@ int sniffer::mArgCheck(int argc, char *argv[]){
                         if(mCapFlag.first){
                             return E_DUPLICITEARG;
                         }
-                        /* check for validity of integer */
-                        if(!mIsNumber(optarg)){
+
+                        std::string str = optarg;
+                        try {
+                            mCapFlag.second = std::stoi(str, nullptr, 0);
+                        }
+                        catch(std::invalid_argument){
+                            std::cerr << "Invalid capabilities argument" << std::endl;
                             return E_EXPECTEDINTASARGUMENT;
                         }
-
                         mCapFlag.first = true;
-                        mCapFlag.second = atoi(optarg);
                         break;
                     }
                     /* --address */

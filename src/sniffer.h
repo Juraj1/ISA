@@ -90,13 +90,13 @@ private:
     /* argument flags */
     std::pair<bool, std::string>mInterfaceFlag;         /* -i */
     bool mHelloFlag;                                    /* --send-hello */
-    std::pair<bool, uint8_t>mTtlFlag;                   /* --ttl */
+    std::pair<bool, int32_t>mTtlFlag;                   /* --ttl */
     std::pair<bool, std::string>mDuplexFlag;            /* --duplex */
     std::pair<bool, std::string>mPlatformFlag;          /* --platform */
     std::pair<bool, std::string>mVersionFlag;           /* --software-version */
     std::pair<bool, std::string>mDeviceIdFlag;          /* --device-id */
     std::pair<bool, std::string>mPortIdFlag;            /* --port-id */
-    std::pair<bool, uint32_t>mCapFlag;                  /* --capabilities */
+    std::pair<bool, int32_t>mCapFlag;                   /* --capabilities */
     std::pair<bool, struct sockaddr_in>mAddressFlag;    /* --address */
 
     time_t mTimeOld;
@@ -180,13 +180,6 @@ private:
     }mChassisID_t;
 
     /****** METHODS ******/
-    /**
-     * @brief Checks whether string is a number.
-     * @param String to be checked.
-     * @return True if string is number.
-     */
-    bool mIsNumber(char *);
-
     /**
      * @brief Sets Uname default uname;
      */
